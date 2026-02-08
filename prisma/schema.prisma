@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id             String         @id @default(cuid())
+  username       String         @unique
+  passwordHash   String?
+  isAdmin        Boolean        @default(false)
+  newCardsPerDay Int            @default(10)
+  createdAt      DateTime       @default(now())
+  progress       UserProgress[]
+}
+
+model Deck {
+  id             String             @id @default(cuid())
+  name           String
+  description    String?
+  createdAt      DateTime           @default(now())
+  fields         Field[]
+  cards          Card[]
+  questionTypes  DeckQuestionType[]
+}
+
+model DeckQuestionType {
+  id             String  @id @default(cuid())
+  deckId         String
+  showFieldId    String
+  askFieldId     String
+  position       Int     @default(0)
+  showTtsLang    String?
+  showTtsFieldId String?
+  showTtsStopAt  String?
+  askTtsLang     String?
+  askTtsFieldId  String?
+  askTtsStopAt   String?
+  deck           Deck    @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@unique([deckId, showFieldId, askFieldId])
+}
+
+model Field {
+  id       String      @id @default(cuid())
+  deckId   String
+  name     String
+  position Int
+  deck     Deck        @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  values   CardValue[]
+}
+
+model Card {
+  id        String         @id @default(cuid())
+  deckId    String
+  position  Int            @default(0)
+  tags      String         @default("")
+  createdAt DateTime       @default(now())
+  deck      Deck           @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  values    CardValue[]
+  progress  UserProgress[]
+}
+
+model CardValue {
+  id      String @id @default(cuid())
+  cardId  String
+  fieldId String
+  value   String
+  card    Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  field   Field  @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, fieldId])
+}
+
+model UserProgress {
+  id             String    @id @default(cuid())
+  userId         String
+  cardId         String
+  showFieldId    String
+  askFieldId     String
+  easinessFactor Float     @default(2.5)
+  interval       Int       @default(0)
+  repetitions    Int       @default(0)
+  dueDate        DateTime  @default(now())
+  lastReviewed   DateTime?
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card           Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId, showFieldId, askFieldId])
+}
