@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui";
+import { Footer } from "@/components/layout/Footer";
 
 export default async function Home() {
   const session = await getSession();
@@ -69,10 +70,7 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="py-6 text-center text-sm text-muted border-t border-border">
-        <p>Open source flashcard learning platform</p>
-      </footer>
+      <Footer />
     </main>
   );
 }

@@ -197,6 +197,17 @@ export default function SettingsPage() {
         </Card>
       )}
 
+      {/* TODO: Account Data Export (GDPR Art. 15 & 20 - Right of access & data portability)
+          Add a card here that allows users to download all their personal data
+          (account info + learning progress) as a JSON or CSV file.
+          This requires a new API endpoint: GET /api/user/data-export */}
+
+      {/* TODO: Account Deletion (GDPR Art. 17 - Right to erasure)
+          Add a card here that allows users to permanently delete their account
+          and all associated data (user record + all UserProgress entries).
+          Should require password confirmation before deletion.
+          This requires a new API endpoint: DELETE /api/user/account */}
+
       {/* Change Password */}
       <Card>
         <CardHeader>
