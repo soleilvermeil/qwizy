@@ -9,6 +9,8 @@ import {
   CardTitle,
   CardDescription,
   CardContent,
+  Modal,
+  ModalFooter,
 } from "@/components/ui";
 
 interface User {
@@ -27,6 +29,10 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingCards, setIsSavingCards] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -77,6 +83,68 @@ export default function SettingsPage() {
       setError(err instanceof Error ? err.message : "Failed to save settings");
     } finally {
       setIsSavingCards(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setError("");
+    setSuccessMessage("");
+    setIsExporting(true);
+
+    try {
+      const response = await fetch("/api/user/data-export");
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to export data");
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      // Extract filename from Content-Disposition header or use default
+      const disposition = response.headers.get("Content-Disposition");
+      const filenameMatch = disposition?.match(/filename="(.+)"/);
+      a.download = filenameMatch?.[1] ?? "open-duolingo-data-export.json";
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setSuccessMessage("Data exported successfully");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export data");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setError("");
+    setSuccessMessage("");
+    setIsDeleting(true);
+
+    try {
+      const response = await fetch("/api/user/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete account");
+      }
+
+      // Redirect to home page after account deletion
+      window.location.href = "/";
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete account"
+      );
+      setIsDeleting(false);
     }
   };
 
@@ -197,16 +265,29 @@ export default function SettingsPage() {
         </Card>
       )}
 
-      {/* TODO: Account Data Export (GDPR Art. 15 & 20 - Right of access & data portability)
-          Add a card here that allows users to download all their personal data
-          (account info + learning progress) as a JSON or CSV file.
-          This requires a new API endpoint: GET /api/user/data-export */}
-
-      {/* TODO: Account Deletion (GDPR Art. 17 - Right to erasure)
-          Add a card here that allows users to permanently delete their account
-          and all associated data (user record + all UserProgress entries).
-          Should require password confirmation before deletion.
-          This requires a new API endpoint: DELETE /api/user/account */}
+      {/* Data Export */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Export Your Data</CardTitle>
+          <CardDescription>
+            Download a copy of all your personal data, including your account
+            information and learning progress
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Your export will include your account details and your complete
+            learning history in JSON format.
+          </p>
+          <Button
+            onClick={handleExportData}
+            isLoading={isExporting}
+            variant="outline"
+          >
+            Download My Data
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Change Password */}
       <Card>
@@ -247,6 +328,70 @@ export default function SettingsPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Delete Account */}
+      <Card variant="outlined">
+        <CardHeader>
+          <CardTitle>Delete Account</CardTitle>
+          <CardDescription>
+            Permanently delete your account and all associated data
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            This action is irreversible. All your account information, learning
+            progress, and preferences will be permanently removed.
+          </p>
+          <Button variant="error" onClick={() => setShowDeleteModal(true)}>
+            Delete My Account
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDeletePassword("");
+        }}
+        title="Delete Account"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete your account? This action cannot be
+            undone. All your data will be permanently removed.
+          </p>
+          <Input
+            label="Confirm your password"
+            type="password"
+            value={deletePassword}
+            onChange={(e) => setDeletePassword(e.target.value)}
+            placeholder="Enter your password"
+            autoComplete="current-password"
+          />
+          <ModalFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setDeletePassword("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="error"
+              onClick={handleDeleteAccount}
+              isLoading={isDeleting}
+              disabled={!deletePassword}
+            >
+              Delete Permanently
+            </Button>
+          </ModalFooter>
+        </div>
+      </Modal>
     </div>
   );
 }
