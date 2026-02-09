@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { getMasteryLevel, type MasteryLevel } from "@/lib/mastery";
+import { getMasteryLevel, getLowestInterval, type MasteryLevel } from "@/lib/mastery";
 
 // GET /api/user/decks/[deckId]/cards - Get all cards with user progress
 export async function GET(
@@ -25,11 +25,14 @@ export async function GET(
     const url = new URL(request.url);
     const masteryFilter = url.searchParams.get("mastery") as MasteryLevel | null;
 
-    // Verify deck exists
+    // Verify deck exists and get fields + question types
     const deck = await prisma.deck.findUnique({
       where: { id: deckId },
       include: {
         fields: {
+          orderBy: { position: "asc" },
+        },
+        questionTypes: {
           orderBy: { position: "asc" },
         },
       },
@@ -51,7 +54,7 @@ export async function GET(
       orderBy: { position: "asc" },
     });
 
-    // Get user's progress on all cards
+    // Get user's progress on all cards (including field IDs)
     const progress = await prisma.userProgress.findMany({
       where: {
         userId,
@@ -59,6 +62,8 @@ export async function GET(
       },
       select: {
         cardId: true,
+        showFieldId: true,
+        askFieldId: true,
         repetitions: true,
         interval: true,
         easinessFactor: true,
@@ -67,35 +72,49 @@ export async function GET(
       },
     });
 
-    // Create a map of cardId -> progress (aggregate by card)
-    const progressByCard = new Map<string, {
-      repetitions: number;
-      interval: number;
-      easinessFactor: number;
-      dueDate: Date;
-      lastReviewed: Date | null;
-    }>();
-
+    // Create a map of "cardId:showFieldId:askFieldId" -> progress
+    const progressMap = new Map<string, typeof progress[0]>();
     for (const p of progress) {
-      const existing = progressByCard.get(p.cardId);
-      if (!existing || p.repetitions > existing.repetitions) {
-        progressByCard.set(p.cardId, {
-          repetitions: p.repetitions,
-          interval: p.interval,
-          easinessFactor: p.easinessFactor,
-          dueDate: p.dueDate,
-          lastReviewed: p.lastReviewed,
-        });
-      }
+      const key = `${p.cardId}:${p.showFieldId}:${p.askFieldId}`;
+      progressMap.set(key, p);
     }
 
-    // Map cards with progress and mastery level
+    // Build a field name lookup
+    const fieldNameMap = new Map<string, string>();
+    for (const f of deck.fields) {
+      fieldNameMap.set(f.id, f.name);
+    }
+
+    // Map cards with per-question-type progress and mastery level
     const cardsWithProgress = cards.map((card) => {
-      const cardProgress = progressByCard.get(card.id);
-      const mastery = getMasteryLevel(
-        cardProgress?.repetitions ?? null,
-        cardProgress?.interval ?? null
+      // Build per-question-type progress array
+      const questionTypeProgress = deck.questionTypes.map((qt) => {
+        const key = `${card.id}:${qt.showFieldId}:${qt.askFieldId}`;
+        const p = progressMap.get(key);
+
+        return {
+          showFieldId: qt.showFieldId,
+          askFieldId: qt.askFieldId,
+          showFieldName: fieldNameMap.get(qt.showFieldId) || qt.showFieldId,
+          askFieldName: fieldNameMap.get(qt.askFieldId) || qt.askFieldId,
+          progress: p
+            ? {
+                repetitions: p.repetitions,
+                interval: p.interval,
+                easinessFactor: p.easinessFactor,
+                dueDate: p.dueDate,
+                lastReviewed: p.lastReviewed,
+              }
+            : null,
+        };
+      });
+
+      // Compute mastery from the lowest interval across all question types
+      const intervals = questionTypeProgress.map(
+        (qt) => qt.progress?.interval ?? null
       );
+      const lowestInterval = getLowestInterval(intervals);
+      const mastery = getMasteryLevel(lowestInterval);
 
       // Create a map of fieldId -> value for easy lookup
       const valuesByField: Record<string, string> = {};
@@ -108,15 +127,7 @@ export async function GET(
         position: card.position,
         values: valuesByField,
         mastery,
-        progress: cardProgress
-          ? {
-              repetitions: cardProgress.repetitions,
-              interval: cardProgress.interval,
-              easinessFactor: cardProgress.easinessFactor,
-              dueDate: cardProgress.dueDate,
-              lastReviewed: cardProgress.lastReviewed,
-            }
-          : null,
+        questionTypeProgress,
       };
     });
 
@@ -141,6 +152,12 @@ export async function GET(
         id: deck.id,
         name: deck.name,
         fields: deck.fields,
+        questionTypes: deck.questionTypes.map((qt) => ({
+          id: qt.id,
+          showFieldId: qt.showFieldId,
+          askFieldId: qt.askFieldId,
+          position: qt.position,
+        })),
       },
       cards: filteredCards,
       counts: masteryCount,

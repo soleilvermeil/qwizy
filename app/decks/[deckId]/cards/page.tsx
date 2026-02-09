@@ -11,12 +11,25 @@ interface Field {
   position: number;
 }
 
-interface CardProgress {
-  repetitions: number;
-  interval: number;
-  easinessFactor: number;
-  dueDate: string;
-  lastReviewed: string | null;
+interface QuestionType {
+  id: string;
+  showFieldId: string;
+  askFieldId: string;
+  position: number;
+}
+
+interface QuestionTypeProgress {
+  showFieldId: string;
+  askFieldId: string;
+  showFieldName: string;
+  askFieldName: string;
+  progress: {
+    repetitions: number;
+    interval: number;
+    easinessFactor: number;
+    dueDate: string;
+    lastReviewed: string | null;
+  } | null;
 }
 
 interface CardData {
@@ -24,13 +37,14 @@ interface CardData {
   position: number;
   values: Record<string, string>;
   mastery: MasteryLevel;
-  progress: CardProgress | null;
+  questionTypeProgress: QuestionTypeProgress[];
 }
 
 interface DeckData {
   id: string;
   name: string;
   fields: Field[];
+  questionTypes: QuestionType[];
 }
 
 const MASTERY_TABS: MasteryLevel[] = ["not_seen", "learning", "review", "mastered"];

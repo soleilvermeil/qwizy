@@ -1,11 +1,13 @@
 /**
  * Mastery Level Utilities
  * 
- * Categorizes cards based on learning progress:
- * - Not Seen: No progress record
- * - Learning: Just started (0-1 repetitions)
- * - Review: Active review (2-4 repetitions, interval < 21 days)
- * - Mastered: Well-known (5+ repetitions or interval >= 21 days)
+ * Categorizes cards based on the lowest interval across all question types:
+ * - Not Seen: No progress record for any question type
+ * - Learning: mastery score < 33%
+ * - Review: 33% <= mastery score < 67%
+ * - Mastered: mastery score >= 67%
+ * 
+ * Mastery score: f(interval) = min(1, log(interval) / log(365))
  */
 
 export type MasteryLevel = "not_seen" | "learning" | "review" | "mastered";
@@ -45,31 +47,31 @@ export const MASTERY_LEVELS: Record<MasteryLevel, MasteryInfo> = {
 };
 
 /**
- * Calculate mastery level based on progress data
+ * Compute the mastery score for a given interval.
+ * f(interval) = min(1, log(interval) / log(365))
+ * Returns a value between 0 and 1.
+ */
+export function getMasteryScore(interval: number): number {
+  if (interval <= 1) return 0;
+  return Math.min(1, Math.log(interval) / Math.log(365));
+}
+
+/**
+ * Calculate mastery level based on the lowest interval.
+ * Pass null if no progress exists at all (= "not_seen").
+ * Pass a number (including 0) if at least some progress exists.
  */
 export function getMasteryLevel(
-  repetitions: number | null | undefined,
-  interval: number | null | undefined
+  lowestInterval: number | null
 ): MasteryLevel {
-  // No progress = not seen
-  if (repetitions === null || repetitions === undefined) {
+  if (lowestInterval === null) {
     return "not_seen";
   }
 
-  const reps = repetitions;
-  const int = interval || 0;
+  const score = getMasteryScore(lowestInterval);
 
-  // Mastered: 5+ repetitions OR interval >= 21 days
-  if (reps >= 5 || int >= 21) {
-    return "mastered";
-  }
-
-  // Review: 2-4 repetitions with interval < 21 days
-  if (reps >= 2 && reps <= 4) {
-    return "review";
-  }
-
-  // Learning: 0-1 repetitions
+  if (score >= 0.67) return "mastered";
+  if (score >= 0.33) return "review";
   return "learning";
 }
 
@@ -81,53 +83,22 @@ export function getMasteryInfo(level: MasteryLevel): MasteryInfo {
 }
 
 /**
- * Get mastery level from progress record
+ * Compute the lowest interval for a card across all expected question types.
+ * If some question types have no progress, they count as interval 0.
+ * Returns null if no progress exists at all (card never seen).
  */
-export function getMasteryFromProgress(progress: {
-  repetitions: number;
-  interval: number;
-} | null): MasteryLevel {
-  if (!progress) {
-    return "not_seen";
-  }
-  return getMasteryLevel(progress.repetitions, progress.interval);
-}
+export function getLowestInterval(
+  progressIntervals: (number | null)[]
+): number | null {
+  // If no question types, card is not seen
+  if (progressIntervals.length === 0) return null;
 
-/**
- * Count cards by mastery level
- */
-export function countByMastery<T>(
-  cards: T[],
-  getProgress: (card: T) => { repetitions: number; interval: number } | null
-): Record<MasteryLevel, number> {
-  const counts: Record<MasteryLevel, number> = {
-    not_seen: 0,
-    learning: 0,
-    review: 0,
-    mastered: 0,
-  };
+  // Check if any question type has been seen
+  const hasAnyProgress = progressIntervals.some((i) => i !== null);
+  if (!hasAnyProgress) return null;
 
-  for (const card of cards) {
-    const progress = getProgress(card);
-    const level = getMasteryFromProgress(progress);
-    counts[level]++;
-  }
-
-  return counts;
-}
-
-/**
- * Filter cards by mastery level
- */
-export function filterByMastery<T>(
-  cards: T[],
-  level: MasteryLevel,
-  getProgress: (card: T) => { repetitions: number; interval: number } | null
-): T[] {
-  return cards.filter((card) => {
-    const progress = getProgress(card);
-    return getMasteryFromProgress(progress) === level;
-  });
+  // Treat missing progress as interval 0
+  return Math.min(...progressIntervals.map((i) => i ?? 0));
 }
 
 /**

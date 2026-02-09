@@ -3,12 +3,18 @@
 import { Card, CardContent } from "@/components/ui";
 import { MASTERY_LEVELS, formatInterval, formatDueDate, type MasteryLevel } from "@/lib/mastery";
 
-interface CardProgress {
-  repetitions: number;
-  interval: number;
-  easinessFactor: number;
-  dueDate: string | Date;
-  lastReviewed: string | Date | null;
+interface QuestionTypeProgress {
+  showFieldId: string;
+  askFieldId: string;
+  showFieldName: string;
+  askFieldName: string;
+  progress: {
+    repetitions: number;
+    interval: number;
+    easinessFactor: number;
+    dueDate: string | Date;
+    lastReviewed: string | Date | null;
+  } | null;
 }
 
 interface CardData {
@@ -16,7 +22,7 @@ interface CardData {
   position: number;
   values: Record<string, string>;
   mastery: MasteryLevel;
-  progress: CardProgress | null;
+  questionTypeProgress: QuestionTypeProgress[];
 }
 
 interface Field {
@@ -55,9 +61,6 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
     );
   }
 
-  // Get the first two fields for display (usually front/back)
-  const displayFields = fields.slice(0, 2);
-
   return (
     <div className="space-y-3">
       {cards.map((card) => {
@@ -69,6 +72,10 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
           mastered: "bg-success/10 text-success",
         }[card.mastery];
 
+        const hasAnyProgress = card.questionTypeProgress.some(
+          (qt) => qt.progress !== null
+        );
+
         return (
           <Card
             key={card.id}
@@ -78,9 +85,9 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
           >
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-4">
-                {/* Card Content */}
+                {/* Card Content - All Fields */}
                 <div className="flex-1 min-w-0">
-                  {displayFields.map((field, index) => {
+                  {fields.map((field, index) => {
                     const value = card.values[field.id] || "";
                     return (
                       <div key={field.id} className={index > 0 ? "mt-1" : ""}>
@@ -95,30 +102,50 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                   })}
                 </div>
 
-                {/* Progress Info */}
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                {/* Mastery Badge */}
+                <div className="flex-shrink-0">
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${masteryColorClass}`}>
                     {masteryInfo.label}
                   </span>
-                  
-                  {card.progress && (
-                    <div className="text-xs text-muted-foreground text-right">
-                      <div>{formatInterval(card.progress.interval)}</div>
-                      <div>{formatDueDate(card.progress.dueDate)}</div>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* Additional Stats for cards with progress */}
-              {card.progress && card.progress.repetitions > 0 && (
-                <div className="mt-3 pt-3 border-t border-border flex gap-4 text-xs text-muted-foreground">
-                  <div>
-                    <span className="font-medium">{card.progress.repetitions}</span> reviews
-                  </div>
-                  <div>
-                    EF: <span className="font-medium">{card.progress.easinessFactor.toFixed(2)}</span>
-                  </div>
+              {/* Per-question-type stats */}
+              {hasAnyProgress && (
+                <div className="mt-3 pt-3 border-t border-border space-y-2">
+                  {card.questionTypeProgress.map((qt) => (
+                    <div
+                      key={`${qt.showFieldId}-${qt.askFieldId}`}
+                      className="text-xs"
+                    >
+                      <div className="text-muted-foreground font-medium mb-0.5">
+                        {qt.showFieldName} &rarr; {qt.askFieldName}
+                      </div>
+                      {qt.progress ? (
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                          <div>
+                            <span className="font-medium text-foreground">{qt.progress.repetitions}</span> reviews
+                          </div>
+                          <div>
+                            EF: <span className="font-medium text-foreground">{qt.progress.easinessFactor.toFixed(2)}</span>
+                          </div>
+                          <div>
+                            Interval: <span className="font-medium text-foreground">{formatInterval(qt.progress.interval)}</span>
+                          </div>
+                          <div>
+                            Due: <span className="font-medium text-foreground">{formatDueDate(qt.progress.dueDate)}</span>
+                          </div>
+                          {qt.progress.lastReviewed && (
+                            <div>
+                              Last: <span className="font-medium text-foreground">{formatDueDate(qt.progress.lastReviewed)}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-muted italic">Not yet studied</div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { getMasteryLevel, getUpcomingReviews, type MasteryLevel } from "@/lib/mastery";
+import { getMasteryLevel, getLowestInterval, getUpcomingReviews, type MasteryLevel } from "@/lib/mastery";
 import { getNewCardsIntroducedToday } from "@/lib/daily";
 
 // GET /api/user/decks/[deckId]/stats - Get detailed stats for a deck
@@ -27,6 +27,9 @@ export async function GET(
       where: { id: deckId },
       include: {
         fields: {
+          orderBy: { position: "asc" },
+        },
+        questionTypes: {
           orderBy: { position: "asc" },
         },
         _count: {
@@ -56,6 +59,8 @@ export async function GET(
       },
       select: {
         cardId: true,
+        showFieldId: true,
+        askFieldId: true,
         repetitions: true,
         interval: true,
         easinessFactor: true,
@@ -64,15 +69,14 @@ export async function GET(
       },
     });
 
-    // Create a map of cardId -> progress (using first progress entry for each card)
-    const progressByCard = new Map<string, typeof progress[0]>();
+    // Create a map of "cardId:showFieldId:askFieldId" -> progress
+    const progressMap = new Map<string, typeof progress[0]>();
     for (const p of progress) {
-      if (!progressByCard.has(p.cardId)) {
-        progressByCard.set(p.cardId, p);
-      }
+      const key = `${p.cardId}:${p.showFieldId}:${p.askFieldId}`;
+      progressMap.set(key, p);
     }
 
-    // Calculate mastery levels
+    // Calculate mastery levels using lowest interval across question types
     const masteryCount: Record<MasteryLevel, number> = {
       not_seen: 0,
       learning: 0,
@@ -87,17 +91,26 @@ export async function GET(
     now.setHours(0, 0, 0, 0);
 
     for (const card of cards) {
-      const p = progressByCard.get(card.id);
-      
-      if (!p) {
-        masteryCount.not_seen++;
-      } else {
-        const level = getMasteryLevel(p.repetitions, p.interval);
-        masteryCount[level]++;
-        
-        totalEF += p.easinessFactor;
-        efCount++;
-        totalReviews += p.repetitions;
+      // Gather intervals for all question types for this card
+      const intervals = deck.questionTypes.map((qt) => {
+        const key = `${card.id}:${qt.showFieldId}:${qt.askFieldId}`;
+        const p = progressMap.get(key);
+        return p ? p.interval : null;
+      });
+
+      const lowestInterval = getLowestInterval(intervals);
+      const level = getMasteryLevel(lowestInterval);
+      masteryCount[level]++;
+
+      // Accumulate stats from all progress entries for this card
+      for (const qt of deck.questionTypes) {
+        const key = `${card.id}:${qt.showFieldId}:${qt.askFieldId}`;
+        const p = progressMap.get(key);
+        if (p) {
+          totalEF += p.easinessFactor;
+          efCount++;
+          totalReviews += p.repetitions;
+        }
       }
     }
 
