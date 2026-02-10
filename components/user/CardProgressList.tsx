@@ -197,15 +197,15 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                           <span className="text-muted-foreground font-medium">
                             {qt.showFieldName} &rarr; {qt.askFieldName}
                           </span>
-                          {qt.useAsQuestion !== false && (
+                          {/* {qt.useAsQuestion !== false && (
                             <span className="text-[10px] px-1 py-0.5 rounded bg-warning/10 text-warning font-medium">Q</span>
                           )}
                           {qt.useAsExplanation && (
                             <span className="text-[10px] px-1 py-0.5 rounded bg-success/10 text-success font-medium">E</span>
-                          )}
+                          )} */}
                           {isDetermining && hasAnyProgress && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                              determines mastery
+                              lowest stability
                             </span>
                           )}
                         </div>
@@ -256,13 +256,13 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                               label="Last Review"
                               value={qt.progress.lastReviewed ? formatDueDate(qt.progress.lastReviewed) : "Never"}
                             />
-                            {isDetermining && (
+                            {/* {isDetermining && (
                               <div className="col-span-3 sm:col-span-5 mt-0.5">
                                 <span className="text-[10px] text-primary">
                                   score = min(1, {qt.progress.stability.toFixed(2)} / 365) = {(getMasteryScore(qt.progress.stability) * 100).toFixed(1)}%
                                 </span>
                               </div>
-                            )}
+                            )} */}
                           </div>
                         ) : (
                           <div className="text-muted italic">
