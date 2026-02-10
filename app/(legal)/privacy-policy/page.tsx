@@ -100,8 +100,8 @@ export default function PrivacyPolicyPage() {
                 ratings)
               </li>
               <li>
-                Spaced repetition parameters (easiness factor, repetition count,
-                due dates)
+                Spaced repetition parameters (stability, difficulty, review
+                state, due dates)
               </li>
             </ul>
           </div>

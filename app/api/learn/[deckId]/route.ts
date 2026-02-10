@@ -19,10 +19,16 @@ interface QuestionItem {
   askFieldId: string;
   values: { id: string; fieldId: string; value: string }[];
   progress: {
-    easinessFactor: number;
-    interval: number;
-    repetitions: number;
+    stability: number;
+    difficulty: number;
+    state: number;
+    scheduledDays: number;
+    reps: number;
+    lapses: number;
+    elapsedDays: number;
+    learningSteps: number;
     dueDate: Date;
+    lastReviewed: Date | null;
   } | null;
   showTts: TtsConfig | null;
   askTts: TtsConfig | null;
@@ -169,10 +175,16 @@ export async function GET(
               askFieldId: pair.askFieldId,
               values: card.values,
               progress: {
-                easinessFactor: progress.easinessFactor,
-                interval: progress.interval,
-                repetitions: progress.repetitions,
+                stability: progress.stability,
+                difficulty: progress.difficulty,
+                state: progress.state,
+                scheduledDays: progress.scheduledDays,
+                reps: progress.reps,
+                lapses: progress.lapses,
+                elapsedDays: progress.elapsedDays,
+                learningSteps: progress.learningSteps,
                 dueDate: progress.dueDate,
+                lastReviewed: progress.lastReviewed,
               },
               showTts: pair.showTts,
               askTts: pair.askTts,
@@ -237,10 +249,16 @@ export async function GET(
       values: q.values,
       progress: q.progress
         ? {
-            easinessFactor: q.progress.easinessFactor,
-            interval: q.progress.interval,
-            repetitions: q.progress.repetitions,
+            stability: q.progress.stability,
+            difficulty: q.progress.difficulty,
+            state: q.progress.state,
+            scheduledDays: q.progress.scheduledDays,
+            reps: q.progress.reps,
+            lapses: q.progress.lapses,
+            elapsedDays: q.progress.elapsedDays,
+            learningSteps: q.progress.learningSteps,
             dueDate: q.progress.dueDate,
+            lastReviewed: q.progress.lastReviewed,
           }
         : null,
       showTts: q.showTts,

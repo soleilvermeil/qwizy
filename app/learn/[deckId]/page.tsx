@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button, Card, CardContent } from "@/components/ui";
 import { FlashCard, ProgressBar, SessionSummary } from "@/components/user";
 import type { TtsPlayback } from "@/components/user/FlashCard";
-import { previewAllRatings } from "@/lib/sm2";
+import { previewAllRatings, type DBProgress } from "@/lib/fsrs";
 import { formatInterval } from "@/lib/mastery";
 
 interface Field {
@@ -33,10 +33,16 @@ interface QuestionItem {
   askFieldId: string;
   values: CardValue[];
   progress: {
-    easinessFactor: number;
-    interval: number;
-    repetitions: number;
+    stability: number;
+    difficulty: number;
+    state: number;
+    scheduledDays: number;
+    reps: number;
+    lapses: number;
+    elapsedDays: number;
+    learningSteps: number;
     dueDate: string;
+    lastReviewed: string | null;
   } | null;
   showTts: TtsConfig | null;
   askTts: TtsConfig | null;
@@ -125,10 +131,21 @@ export default function LearnPage({ params }: PageProps) {
     const question = questions[currentIndex];
     if (!question) return undefined;
     const progress = question.progress;
-    const ef = progress?.easinessFactor ?? 2.5;
-    const interval = progress?.interval ?? 0;
-    const reps = progress?.repetitions ?? 0;
-    const raw = previewAllRatings(ef, interval, reps);
+    const dbProgress: DBProgress | null = progress
+      ? {
+          stability: progress.stability,
+          difficulty: progress.difficulty,
+          state: progress.state,
+          reps: progress.reps,
+          lapses: progress.lapses,
+          scheduledDays: progress.scheduledDays,
+          elapsedDays: progress.elapsedDays,
+          learningSteps: progress.learningSteps,
+          dueDate: new Date(progress.dueDate),
+          lastReviewed: progress.lastReviewed ? new Date(progress.lastReviewed) : null,
+        }
+      : null;
+    const raw = previewAllRatings(dbProgress);
     return {
       failed: "Again",
       hard: formatInterval(raw.hard),
@@ -172,10 +189,16 @@ export default function LearnPage({ params }: PageProps) {
         const retriedQuestion: QuestionItem = {
           ...currentQuestion,
           progress: {
-            easinessFactor: data.progress.easinessFactor,
-            interval: data.progress.interval,
-            repetitions: data.progress.repetitions,
+            stability: data.progress.stability,
+            difficulty: data.progress.difficulty,
+            state: data.progress.state,
+            scheduledDays: data.progress.scheduledDays,
+            reps: data.progress.reps,
+            lapses: data.progress.lapses ?? 0,
+            elapsedDays: data.progress.elapsedDays ?? 0,
+            learningSteps: data.progress.learningSteps ?? 0,
             dueDate: data.progress.dueDate,
+            lastReviewed: data.progress.lastReviewed ?? null,
           },
         };
         setQuestions((prev) => [...prev, retriedQuestion]);

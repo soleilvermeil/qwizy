@@ -9,9 +9,11 @@ interface QuestionTypeProgress {
   showFieldName: string;
   askFieldName: string;
   progress: {
-    repetitions: number;
-    interval: number;
-    easinessFactor: number;
+    stability: number;
+    difficulty: number;
+    state: number;
+    reps: number;
+    scheduledDays: number;
     dueDate: string | Date;
     lastReviewed: string | Date | null;
   } | null;
@@ -36,6 +38,13 @@ interface CardProgressListProps {
   fields: Field[];
   onCardClick?: (cardId: string) => void;
 }
+
+const STATE_LABELS: Record<number, string> = {
+  0: "New",
+  1: "Learning",
+  2: "Review",
+  3: "Relearning",
+};
 
 export function CardProgressList({ cards, fields, onCardClick }: CardProgressListProps) {
   if (cards.length === 0) {
@@ -124,13 +133,13 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                       {qt.progress ? (
                         <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
                           <div>
-                            <span className="font-medium text-foreground">{qt.progress.repetitions}</span> reviews
+                            <span className="font-medium text-foreground">{qt.progress.reps}</span> reviews
                           </div>
                           <div>
-                            EF: <span className="font-medium text-foreground">{qt.progress.easinessFactor.toFixed(2)}</span>
+                            {STATE_LABELS[qt.progress.state] ?? "Unknown"}
                           </div>
                           <div>
-                            Interval: <span className="font-medium text-foreground">{formatInterval(qt.progress.interval)}</span>
+                            Interval: <span className="font-medium text-foreground">{formatInterval(qt.progress.scheduledDays)}</span>
                           </div>
                           <div>
                             Due: <span className="font-medium text-foreground">{formatDueDate(qt.progress.dueDate)}</span>

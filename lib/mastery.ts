@@ -1,13 +1,13 @@
 /**
  * Mastery Level Utilities
- * 
- * Categorizes cards based on the lowest interval across all question types:
+ *
+ * Categorizes cards based on the lowest stability across all question types:
  * - Not Seen: No progress record for any question type
  * - Learning: mastery score < 33%
  * - Review: 33% <= mastery score < 67%
  * - Mastered: mastery score >= 67%
- * 
- * Mastery score: f(interval) = min(1, log(interval) / log(365))
+ *
+ * Mastery score: f(stability) = min(1, log(stability) / log(365))
  */
 
 export type MasteryLevel = "not_seen" | "learning" | "review" | "mastered";
@@ -47,28 +47,28 @@ export const MASTERY_LEVELS: Record<MasteryLevel, MasteryInfo> = {
 };
 
 /**
- * Compute the mastery score for a given interval.
- * f(interval) = min(1, log(interval) / log(365))
+ * Compute the mastery score for a given stability.
+ * f(stability) = min(1, log(stability) / log(365))
  * Returns a value between 0 and 1.
  */
-export function getMasteryScore(interval: number): number {
-  if (interval <= 1) return 0;
-  return Math.min(1, Math.log(interval) / Math.log(365));
+export function getMasteryScore(stability: number): number {
+  if (stability <= 1) return 0;
+  return Math.min(1, Math.log(stability) / Math.log(365));
 }
 
 /**
- * Calculate mastery level based on the lowest interval.
+ * Calculate mastery level based on the lowest stability.
  * Pass null if no progress exists at all (= "not_seen").
  * Pass a number (including 0) if at least some progress exists.
  */
 export function getMasteryLevel(
-  lowestInterval: number | null
+  lowestStability: number | null
 ): MasteryLevel {
-  if (lowestInterval === null) {
+  if (lowestStability === null) {
     return "not_seen";
   }
 
-  const score = getMasteryScore(lowestInterval);
+  const score = getMasteryScore(lowestStability);
 
   if (score >= 0.67) return "mastered";
   if (score >= 0.33) return "review";
@@ -83,22 +83,19 @@ export function getMasteryInfo(level: MasteryLevel): MasteryInfo {
 }
 
 /**
- * Compute the lowest interval for a card across all expected question types.
- * If some question types have no progress, they count as interval 0.
+ * Compute the lowest stability for a card across all expected question types.
+ * If some question types have no progress, they count as stability 0.
  * Returns null if no progress exists at all (card never seen).
  */
-export function getLowestInterval(
-  progressIntervals: (number | null)[]
+export function getLowestStability(
+  progressStabilities: (number | null)[]
 ): number | null {
-  // If no question types, card is not seen
-  if (progressIntervals.length === 0) return null;
+  if (progressStabilities.length === 0) return null;
 
-  // Check if any question type has been seen
-  const hasAnyProgress = progressIntervals.some((i) => i !== null);
+  const hasAnyProgress = progressStabilities.some((s) => s !== null);
   if (!hasAnyProgress) return null;
 
-  // Treat missing progress as interval 0
-  return Math.min(...progressIntervals.map((i) => i ?? 0));
+  return Math.min(...progressStabilities.map((s) => s ?? 0));
 }
 
 /**
@@ -134,25 +131,25 @@ export function getUpcomingReviews<T>(
 /**
  * Format interval for display
  */
-export function formatInterval(interval: number): string {
-  if (interval === 0) {
+export function formatInterval(days: number): string {
+  if (days === 0) {
     return "New";
   }
-  if (interval === 1) {
+  if (days === 1) {
     return "1 day";
   }
-  if (interval < 7) {
-    return `${interval} days`;
+  if (days < 7) {
+    return `${days} days`;
   }
-  if (interval < 30) {
-    const weeks = Math.floor(interval / 7);
+  if (days < 30) {
+    const weeks = Math.floor(days / 7);
     return weeks === 1 ? "1 week" : `${weeks} weeks`;
   }
-  if (interval < 365) {
-    const months = Math.floor(interval / 30);
+  if (days < 365) {
+    const months = Math.floor(days / 30);
     return months === 1 ? "1 month" : `${months} months`;
   }
-  const years = Math.floor(interval / 365);
+  const years = Math.floor(days / 365);
   return years === 1 ? "1 year" : `${years} years`;
 }
 
@@ -180,6 +177,6 @@ export function formatDueDate(dueDate: Date | string): string {
   if (diffDays < 7) {
     return `In ${diffDays} days`;
   }
-  
+
   return date.toLocaleDateString();
 }
