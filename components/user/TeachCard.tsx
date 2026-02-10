@@ -65,12 +65,6 @@ export function TeachCard({
     <Card variant="elevated" padding="lg" className="max-w-lg mx-auto">
       <CardContent>
         <div className="space-y-6">
-          {/* Header */}
-          <div className="text-center">
-            <span className="inline-block px-3 py-1 rounded-full bg-success/10 text-success text-xs font-medium">
-              Learn this
-            </span>
-          </div>
 
           {/* Show field */}
           <div className="text-center">
