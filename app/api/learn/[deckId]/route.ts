@@ -60,7 +60,8 @@ export async function GET(
 
     const { deckId } = await params;
     const userId = session.userId;
-    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     // Get deck with fields and question types
     const deck = await prisma.deck.findUnique({
@@ -146,6 +147,8 @@ export async function GET(
 
     // Check if this is an "extra study" request (beyond daily limit)
     const isExtra = request.nextUrl.searchParams.get("extra") === "true";
+    // Check if this is a "due only" request (continue reviewing, no new cards)
+    const isDueOnly = request.nextUrl.searchParams.get("dueOnly") === "true";
 
     // Get all cards in deck with their values
     const allCards = await prisma.card.findMany({
@@ -183,8 +186,10 @@ export async function GET(
 
         if (progress) {
           hasAnyProgress = true;
-          // Check if this question is due
-          if (new Date(progress.dueDate) <= now) {
+          // Check if this question is due (calendar-day granularity)
+          const dueDay = new Date(progress.dueDate);
+          dueDay.setHours(0, 0, 0, 0);
+          if (dueDay <= today) {
             dueQuestions.push({
               cardId: card.id,
               showFieldId: pair.showFieldId,
@@ -280,11 +285,13 @@ export async function GET(
     }
 
     // In extra mode, only serve new cards (due cards are already handled by normal sessions)
+    // In dueOnly mode, only serve due cards (no new cards or explanations)
     const sessionDueQuestions = isExtra ? [] : dueQuestions;
+    const sessionNewQuestions = isDueOnly ? [] : newQuestions;
 
     // Shuffle within groups, then concatenate: review first, then new
     const shuffledDue = shuffle(sessionDueQuestions);
-    const shuffledNew = shuffle(newQuestions);
+    const shuffledNew = shuffle(sessionNewQuestions);
     const sessionQuestions = [...shuffledDue, ...shuffledNew];
 
     // Format response
@@ -311,7 +318,8 @@ export async function GET(
       askTts: q.askTts,
     }));
 
-    const explanations = newExplanations.map((e) => ({
+    const sessionExplanations = isDueOnly ? [] : newExplanations;
+    const explanations = sessionExplanations.map((e) => ({
       cardId: e.cardId,
       showFieldId: e.showFieldId,
       askFieldId: e.askFieldId,

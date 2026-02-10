@@ -89,8 +89,7 @@ export async function GET(
     let totalDifficulty = 0;
     let difficultyCount = 0;
     let totalReviews = 0;
-    const now = new Date();
-    const today = new Date(now);
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // Map cardId -> mastery level (for upcoming breakdown)
@@ -121,9 +120,11 @@ export async function GET(
       }
     }
 
-    // Count due today, split by state
+    // Count due today or earlier (calendar-day granularity)
     const dueProgress = progress.filter(p => {
-      return new Date(p.dueDate) <= now && p.reps > 0;
+      const d = new Date(p.dueDate);
+      d.setHours(0, 0, 0, 0);
+      return d <= today && p.reps > 0;
     });
     const dueToday = dueProgress.length;
     const dueReviews = dueProgress.filter(p => p.state === 2).length;

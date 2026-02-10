@@ -111,12 +111,11 @@ export default function LearnPage({ params }: PageProps) {
     failed: 0,
   });
 
-  const fetchSession = useCallback(async (extra = false) => {
+  const fetchSession = useCallback(async (mode: "normal" | "extra" | "dueOnly" = "normal") => {
     setIsLoading(true);
     try {
-      const url = extra
-        ? `/api/learn/${deckId}?extra=true`
-        : `/api/learn/${deckId}`;
+      const params = mode === "extra" ? "?extra=true" : mode === "dueOnly" ? "?dueOnly=true" : "";
+      const url = `/api/learn/${deckId}${params}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch session");
       const data = await response.json();
@@ -151,7 +150,7 @@ export default function LearnPage({ params }: PageProps) {
   }, [deckId, router]);
 
   useEffect(() => {
-    fetchSession(initialExtra);
+    fetchSession(initialExtra ? "extra" : "normal");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchSession]);
 
@@ -175,7 +174,11 @@ export default function LearnPage({ params }: PageProps) {
   }, [isComplete, deckId]);
 
   const fetchExtra = useCallback(() => {
-    fetchSession(true);
+    fetchSession("extra");
+  }, [fetchSession]);
+
+  const fetchDueOnly = useCallback(() => {
+    fetchSession("dueOnly");
   }, [fetchSession]);
 
   // Get the current session item
@@ -383,7 +386,7 @@ export default function LearnPage({ params }: PageProps) {
           <SessionSummary
             deckName={deck.name}
             stats={reviewStats}
-            onContinueReview={fetchSession}
+            onContinueReview={fetchDueOnly}
             pendingDueCount={pendingDueCount}
             onStudyMore={fetchExtra}
             hasMoreNewCards={hasMoreNewCards}

@@ -16,7 +16,8 @@ export async function GET() {
     }
 
     const userId = session.userId;
-    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     // Get all decks with card counts
     const decks = await prisma.deck.findMany({
@@ -55,12 +56,14 @@ export async function GET() {
         const learnedCardIds = new Set(progress.map((p) => p.cardId));
         const learnedCards = learnedCardIds.size;
 
-        // Count cards that are due today, split by state
+        // Count cards that are due today or earlier (calendar-day granularity)
         // state 2 = Review (normal scheduled reviews)
         // state 0,1,3 = New/Learning/Relearning (0-day interval cards)
-        const dueProgress = progress.filter(
-          (p) => new Date(p.dueDate) <= now && p.reps > 0
-        );
+        const dueProgress = progress.filter((p) => {
+          const d = new Date(p.dueDate);
+          d.setHours(0, 0, 0, 0);
+          return d <= today && p.reps > 0;
+        });
         const dueCards = dueProgress.length;
         const dueReviews = dueProgress.filter((p) => p.state === 2).length;
         const dueLearning = dueProgress.filter((p) => p.state !== 2).length;
