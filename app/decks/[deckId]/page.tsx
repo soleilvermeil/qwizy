@@ -26,7 +26,7 @@ interface Stats {
   dueToday: number;
   newAvailable: number;
   byMastery: Record<MasteryLevel, number>;
-  upcoming: { reviews: number; newCards: number }[];
+  upcoming: { newCards: number; low: number; medium: number; high: number }[];
   averageDifficulty: number;
   totalReviews: number;
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { getMasteryLevel, getLowestStability, getUpcomingReviews, type MasteryLevel } from "@/lib/mastery";
+import { getMasteryLevel, getLowestStability, type MasteryLevel } from "@/lib/mastery";
 import { getNewCardsIntroducedToday } from "@/lib/daily";
 
 // GET /api/user/decks/[deckId]/stats - Get detailed stats for a deck
@@ -92,6 +92,9 @@ export async function GET(
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
+    // Map cardId -> mastery level (for upcoming breakdown)
+    const cardMasteryMap = new Map<string, MasteryLevel>();
+
     for (const card of cards) {
       // Gather stabilities for all question types for this card
       const stabilities = deck.questionTypes.map((qt) => {
@@ -103,6 +106,7 @@ export async function GET(
       const lowestStability = getLowestStability(stabilities);
       const level = getMasteryLevel(lowestStability);
       masteryCount[level]++;
+      cardMasteryMap.set(card.id, level);
 
       // Accumulate stats from all progress entries for this card
       for (const qt of deck.questionTypes) {
@@ -135,29 +139,34 @@ export async function GET(
     const remainingDailyNew = Math.max(0, newCardsPerDay - alreadyIntroducedToday);
     const newAvailable = Math.min(masteryCount.not_seen, remainingDailyNew);
 
-    // Calculate upcoming reviews for next 7 days
-    const upcomingReviews = getUpcomingReviews(
-      progress.filter(p => p.reps > 0),
-      7,
-      (p) => p.dueDate
-    );
+    // Calculate upcoming reviews for next 7 days, broken down by stability level
+    const upcomingByLevel: { newCards: number; low: number; medium: number; high: number }[] =
+      Array.from({ length: 7 }, () => ({ newCards: 0, low: 0, medium: 0, high: 0 }));
+
+    for (const p of progress) {
+      if (p.reps === 0) continue;
+      const dueDate = new Date(p.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      const diffDays = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays < 0 || diffDays >= 7) continue;
+
+      const cardLevel = cardMasteryMap.get(p.cardId) ?? "low";
+      if (cardLevel === "low") upcomingByLevel[diffDays].low++;
+      else if (cardLevel === "medium") upcomingByLevel[diffDays].medium++;
+      else if (cardLevel === "high") upcomingByLevel[diffDays].high++;
+      // not_seen cards won't have reps > 0, so no branch needed
+    }
 
     // Forecast new cards per day for next 7 days
     let remainingNew = masteryCount.not_seen;
-    const upcomingNew = new Array(7).fill(0);
     for (let day = 0; day < 7; day++) {
-      // Day 0 (today): account for cards already introduced today
       const limit = day === 0 ? remainingDailyNew : newCardsPerDay;
       const newForDay = Math.min(remainingNew, limit);
-      upcomingNew[day] = newForDay;
+      upcomingByLevel[day].newCards = newForDay;
       remainingNew -= newForDay;
     }
 
-    // Combine into a structured upcoming array
-    const upcoming = upcomingReviews.map((reviews, i) => ({
-      reviews,
-      newCards: upcomingNew[i],
-    }));
+    const upcoming = upcomingByLevel;
 
     // Calculate average difficulty (FSRS difficulty is 1-10)
     const averageDifficulty = difficultyCount > 0 ? totalDifficulty / difficultyCount : 0;

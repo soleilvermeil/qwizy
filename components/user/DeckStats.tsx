@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { MASTERY_LEVELS, type MasteryLevel } from "@/lib/mastery";
 
 interface UpcomingDay {
-  reviews: number;
   newCards: number;
+  low: number;
+  medium: number;
+  high: number;
 }
 
 interface DeckStatsProps {
@@ -23,11 +25,11 @@ interface DeckStatsProps {
 
 export function DeckStats({ stats }: DeckStatsProps) {
   const maxUpcoming = Math.max(
-    ...stats.upcoming.map((d) => d.reviews + d.newCards),
+    ...stats.upcoming.map((d) => d.newCards + d.low + d.medium + d.high),
     1
   );
   const dayLabels = ["Today", "Tomorrow", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"];
-  const hasNewCards = stats.upcoming.some((d) => d.newCards > 0);
+
 
   // Calculate percentages for the donut chart
   const total = stats.total || 1;
@@ -153,47 +155,69 @@ export function DeckStats({ stats }: DeckStatsProps) {
         <CardContent>
           <div className="space-y-2">
             {stats.upcoming.map((day, index) => {
-              const total = day.reviews + day.newCards;
-              const reviewWidth = (day.reviews / maxUpcoming) * 100;
+              const dayTotal = day.newCards + day.low + day.medium + day.high;
               const newWidth = (day.newCards / maxUpcoming) * 100;
+              const lowWidth = (day.low / maxUpcoming) * 100;
+              const medWidth = (day.medium / maxUpcoming) * 100;
+              const highWidth = (day.high / maxUpcoming) * 100;
               return (
                 <div key={index} className="flex items-center gap-3">
                   <div className="w-20 text-sm text-muted-foreground">
                     {dayLabels[index]}
                   </div>
-                  <div className="flex-1 h-6 bg-muted rounded overflow-hidden flex">
-                    {day.reviews > 0 && (
+                  <div className="flex-1 h-6 rounded overflow-hidden flex" style={{ backgroundColor: "#f0f0f0" }}>
+                    {day.high > 0 && (
                       <div
-                        className="h-full bg-primary transition-all duration-300"
-                        style={{ width: `${reviewWidth}%` }}
-                        title={`${day.reviews} review${day.reviews !== 1 ? "s" : ""}`}
+                        className="h-full transition-all duration-300"
+                        style={{ width: `${highWidth}%`, backgroundColor: "#7CB374" }}
+                        title={`${day.high} review${day.high !== 1 ? "s" : ""} (high stability)`}
+                      />
+                    )}
+                    {day.medium > 0 && (
+                      <div
+                        className="h-full transition-all duration-300"
+                        style={{ width: `${medWidth}%`, backgroundColor: "#9AB34A" }}
+                        title={`${day.medium} review${day.medium !== 1 ? "s" : ""} (medium stability)`}
+                      />
+                    )}
+                    {day.low > 0 && (
+                      <div
+                        className="h-full transition-all duration-300"
+                        style={{ width: `${lowWidth}%`, backgroundColor: "#D4A574" }}
+                        title={`${day.low} review${day.low !== 1 ? "s" : ""} (low stability)`}
                       />
                     )}
                     {day.newCards > 0 && (
                       <div
-                        className="h-full bg-success transition-all duration-300"
-                        style={{ width: `${newWidth}%` }}
-                        title={`${day.newCards} new`}
+                        className="h-full transition-all duration-300"
+                        style={{ width: `${newWidth}%`, backgroundColor: "#9ca3af" }}
+                        title={`${day.newCards} new card${day.newCards !== 1 ? "s" : ""}`}
                       />
                     )}
                   </div>
-                  <div className="w-8 text-sm text-right font-medium">{total}</div>
+                  <div className="w-8 text-sm text-right font-medium">{dayTotal}</div>
                 </div>
               );
             })}
           </div>
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border">
+          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border flex-wrap">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-sm bg-primary" />
-              <span className="text-xs text-muted-foreground">Reviews</span>
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#7CB374" }} />
+              <span className="text-xs text-muted-foreground">Review (high stability)</span>
             </div>
-            {hasNewCards && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-sm bg-success" />
-                <span className="text-xs text-muted-foreground">New Cards</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#9AB34A" }} />
+              <span className="text-xs text-muted-foreground">Review (medium stability)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#D4A574" }} />
+              <span className="text-xs text-muted-foreground">Review (low stability)</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: "#9ca3af" }} />
+              <span className="text-xs text-muted-foreground">New cards</span>
+            </div>
           </div>
         </CardContent>
       </Card>
