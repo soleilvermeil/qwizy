@@ -20,7 +20,7 @@ import {
 // Singleton FSRS instance (95 % target retention → shorter intervals)
 // ---------------------------------------------------------------------------
 
-const f = fsrs({ request_retention: 0.95 });
+const f = fsrs({ request_retention: 0.95, enable_fuzz: true });
 
 // ---------------------------------------------------------------------------
 // Our app's rating strings  →  ts-fsrs Grade enum
