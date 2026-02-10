@@ -27,7 +27,7 @@ interface Stats {
   newAvailable: number;
   byMastery: Record<MasteryLevel, number>;
   upcoming: { reviews: number; newCards: number }[];
-  averageEF: number;
+  averageDifficulty: number;
   totalReviews: number;
 }
 

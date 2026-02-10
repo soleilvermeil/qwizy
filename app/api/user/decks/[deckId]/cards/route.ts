@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { getMasteryLevel, getLowestInterval, type MasteryLevel } from "@/lib/mastery";
+import { getMasteryLevel, getLowestStability, type MasteryLevel } from "@/lib/mastery";
 
 // GET /api/user/decks/[deckId]/cards - Get all cards with user progress
 export async function GET(
@@ -64,9 +64,14 @@ export async function GET(
         cardId: true,
         showFieldId: true,
         askFieldId: true,
-        repetitions: true,
-        interval: true,
-        easinessFactor: true,
+        stability: true,
+        difficulty: true,
+        state: true,
+        reps: true,
+        lapses: true,
+        scheduledDays: true,
+        elapsedDays: true,
+        learningSteps: true,
         dueDate: true,
         lastReviewed: true,
       },
@@ -99,9 +104,14 @@ export async function GET(
           askFieldName: fieldNameMap.get(qt.askFieldId) || qt.askFieldId,
           progress: p
             ? {
-                repetitions: p.repetitions,
-                interval: p.interval,
-                easinessFactor: p.easinessFactor,
+                stability: p.stability,
+                difficulty: p.difficulty,
+                state: p.state,
+                reps: p.reps,
+                lapses: p.lapses,
+                scheduledDays: p.scheduledDays,
+                elapsedDays: p.elapsedDays,
+                learningSteps: p.learningSteps,
                 dueDate: p.dueDate,
                 lastReviewed: p.lastReviewed,
               }
@@ -109,12 +119,12 @@ export async function GET(
         };
       });
 
-      // Compute mastery from the lowest interval across all question types
-      const intervals = questionTypeProgress.map(
-        (qt) => qt.progress?.interval ?? null
+      // Compute mastery from the lowest stability across all question types
+      const stabilities = questionTypeProgress.map(
+        (qt) => qt.progress?.stability ?? null
       );
-      const lowestInterval = getLowestInterval(intervals);
-      const mastery = getMasteryLevel(lowestInterval);
+      const lowestStability = getLowestStability(stabilities);
+      const mastery = getMasteryLevel(lowestStability);
 
       // Create a map of fieldId -> value for easy lookup
       const valuesByField: Record<string, string> = {};

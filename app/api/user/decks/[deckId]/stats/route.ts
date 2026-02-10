@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { getMasteryLevel, getLowestInterval, getUpcomingReviews, type MasteryLevel } from "@/lib/mastery";
+import { getMasteryLevel, getLowestStability, getUpcomingReviews, type MasteryLevel } from "@/lib/mastery";
 import { getNewCardsIntroducedToday } from "@/lib/daily";
 
 // GET /api/user/decks/[deckId]/stats - Get detailed stats for a deck
@@ -61,9 +61,11 @@ export async function GET(
         cardId: true,
         showFieldId: true,
         askFieldId: true,
-        repetitions: true,
-        interval: true,
-        easinessFactor: true,
+        stability: true,
+        difficulty: true,
+        state: true,
+        reps: true,
+        scheduledDays: true,
         dueDate: true,
         lastReviewed: true,
       },
@@ -76,7 +78,7 @@ export async function GET(
       progressMap.set(key, p);
     }
 
-    // Calculate mastery levels using lowest interval across question types
+    // Calculate mastery levels using lowest stability across question types
     const masteryCount: Record<MasteryLevel, number> = {
       not_seen: 0,
       learning: 0,
@@ -84,22 +86,22 @@ export async function GET(
       mastered: 0,
     };
 
-    let totalEF = 0;
-    let efCount = 0;
+    let totalDifficulty = 0;
+    let difficultyCount = 0;
     let totalReviews = 0;
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
     for (const card of cards) {
-      // Gather intervals for all question types for this card
-      const intervals = deck.questionTypes.map((qt) => {
+      // Gather stabilities for all question types for this card
+      const stabilities = deck.questionTypes.map((qt) => {
         const key = `${card.id}:${qt.showFieldId}:${qt.askFieldId}`;
         const p = progressMap.get(key);
-        return p ? p.interval : null;
+        return p ? p.stability : null;
       });
 
-      const lowestInterval = getLowestInterval(intervals);
-      const level = getMasteryLevel(lowestInterval);
+      const lowestStability = getLowestStability(stabilities);
+      const level = getMasteryLevel(lowestStability);
       masteryCount[level]++;
 
       // Accumulate stats from all progress entries for this card
@@ -107,9 +109,9 @@ export async function GET(
         const key = `${card.id}:${qt.showFieldId}:${qt.askFieldId}`;
         const p = progressMap.get(key);
         if (p) {
-          totalEF += p.easinessFactor;
-          efCount++;
-          totalReviews += p.repetitions;
+          totalDifficulty += p.difficulty;
+          difficultyCount++;
+          totalReviews += p.reps;
         }
       }
     }
@@ -118,7 +120,7 @@ export async function GET(
     const dueToday = progress.filter(p => {
       const dueDate = new Date(p.dueDate);
       dueDate.setHours(0, 0, 0, 0);
-      return dueDate <= now && p.repetitions > 0;
+      return dueDate <= now && p.reps > 0;
     }).length;
 
     // Get user's daily new card limit
@@ -135,7 +137,7 @@ export async function GET(
 
     // Calculate upcoming reviews for next 7 days
     const upcomingReviews = getUpcomingReviews(
-      progress.filter(p => p.repetitions > 0),
+      progress.filter(p => p.reps > 0),
       7,
       (p) => p.dueDate
     );
@@ -157,8 +159,8 @@ export async function GET(
       newCards: upcomingNew[i],
     }));
 
-    // Calculate average easiness factor
-    const averageEF = efCount > 0 ? totalEF / efCount : 2.5;
+    // Calculate average difficulty (FSRS difficulty is 1-10)
+    const averageDifficulty = difficultyCount > 0 ? totalDifficulty / difficultyCount : 0;
 
     return NextResponse.json({
       deck: {
@@ -174,7 +176,7 @@ export async function GET(
         newAvailable,
         byMastery: masteryCount,
         upcoming,
-        averageEF: Math.round(averageEF * 100) / 100,
+        averageDifficulty: Math.round(averageDifficulty * 100) / 100,
         totalReviews,
       },
     });

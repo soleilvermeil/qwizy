@@ -55,7 +55,7 @@ export default async function Home() {
 
           <div className="mt-12 grid grid-cols-3 gap-4 text-center">
             <div className="p-4 rounded-xl bg-secondary">
-              <div className="text-2xl font-bold text-primary">SM-2</div>
+              <div className="text-2xl font-bold text-primary">FSRS</div>
               <div className="text-xs text-muted mt-1">Algorithm</div>
             </div>
             <div className="p-4 rounded-xl bg-secondary">

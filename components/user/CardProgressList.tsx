@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui";
-import { MASTERY_LEVELS, formatInterval, formatDueDate, type MasteryLevel } from "@/lib/mastery";
+import { MASTERY_LEVELS, getMasteryScore, formatDueDate, type MasteryLevel } from "@/lib/mastery";
 
 interface QuestionTypeProgress {
   showFieldId: string;
@@ -9,9 +9,14 @@ interface QuestionTypeProgress {
   showFieldName: string;
   askFieldName: string;
   progress: {
-    repetitions: number;
-    interval: number;
-    easinessFactor: number;
+    stability: number;
+    difficulty: number;
+    state: number;
+    reps: number;
+    lapses: number;
+    scheduledDays: number;
+    elapsedDays: number;
+    learningSteps: number;
     dueDate: string | Date;
     lastReviewed: string | Date | null;
   } | null;
@@ -35,6 +40,58 @@ interface CardProgressListProps {
   cards: CardData[];
   fields: Field[];
   onCardClick?: (cardId: string) => void;
+}
+
+const STATE_LABELS: Record<number, string> = {
+  0: "New",
+  1: "Learning",
+  2: "Review",
+  3: "Relearning",
+};
+
+/**
+ * Find the index of the question type with the lowest stability.
+ * This is the one that determines the card's mastery classification.
+ * Returns -1 if no progress exists.
+ */
+function getDeterminingQtIndex(questionTypeProgress: QuestionTypeProgress[]): number {
+  let minStability = Infinity;
+  let minIndex = -1;
+
+  for (let i = 0; i < questionTypeProgress.length; i++) {
+    const qt = questionTypeProgress[i];
+    // Treat null progress as stability 0 (only if at least one qt has progress)
+    const stability = qt.progress !== null ? qt.progress.stability : null;
+    if (stability !== null && stability < minStability) {
+      minStability = stability;
+      minIndex = i;
+    }
+  }
+
+  // If some question types have no progress but others do, the missing ones
+  // count as stability 0. Check if any null progress would be the lowest.
+  const hasAnyProgress = questionTypeProgress.some((qt) => qt.progress !== null);
+  if (hasAnyProgress) {
+    for (let i = 0; i < questionTypeProgress.length; i++) {
+      if (questionTypeProgress[i].progress === null && 0 < minStability) {
+        // A missing question type has effective stability 0, which is lower
+        return i;
+      }
+    }
+  }
+
+  return minIndex;
+}
+
+function FsrsParam({ label, value, highlight }: { label: string; value: string | number; highlight?: boolean }) {
+  return (
+    <div className="flex flex-col">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</span>
+      <span className={`text-xs font-medium ${highlight ? "text-primary" : "text-foreground"}`}>
+        {value}
+      </span>
+    </div>
+  );
 }
 
 export function CardProgressList({ cards, fields, onCardClick }: CardProgressListProps) {
@@ -76,6 +133,8 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
           (qt) => qt.progress !== null
         );
 
+        const determiningIndex = getDeterminingQtIndex(card.questionTypeProgress);
+
         return (
           <Card
             key={card.id}
@@ -110,42 +169,95 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                 </div>
               </div>
 
-              {/* Per-question-type stats */}
-              {hasAnyProgress && (
+              {/* Per-question-type FSRS parameters */}
+              {(hasAnyProgress || card.questionTypeProgress.length > 0) && (
                 <div className="mt-3 pt-3 border-t border-border space-y-2">
-                  {card.questionTypeProgress.map((qt) => (
-                    <div
-                      key={`${qt.showFieldId}-${qt.askFieldId}`}
-                      className="text-xs"
-                    >
-                      <div className="text-muted-foreground font-medium mb-0.5">
-                        {qt.showFieldName} &rarr; {qt.askFieldName}
-                      </div>
-                      {qt.progress ? (
-                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
-                          <div>
-                            <span className="font-medium text-foreground">{qt.progress.repetitions}</span> reviews
-                          </div>
-                          <div>
-                            EF: <span className="font-medium text-foreground">{qt.progress.easinessFactor.toFixed(2)}</span>
-                          </div>
-                          <div>
-                            Interval: <span className="font-medium text-foreground">{formatInterval(qt.progress.interval)}</span>
-                          </div>
-                          <div>
-                            Due: <span className="font-medium text-foreground">{formatDueDate(qt.progress.dueDate)}</span>
-                          </div>
-                          {qt.progress.lastReviewed && (
-                            <div>
-                              Last: <span className="font-medium text-foreground">{formatDueDate(qt.progress.lastReviewed)}</span>
-                            </div>
+                  {card.questionTypeProgress.map((qt, qtIndex) => {
+                    const isDetermining = qtIndex === determiningIndex;
+
+                    return (
+                      <div
+                        key={`${qt.showFieldId}-${qt.askFieldId}`}
+                        className={`text-xs rounded-md p-2 ${
+                          isDetermining
+                            ? "border-l-2 border-l-primary bg-primary/5"
+                            : "border-l-2 border-l-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-muted-foreground font-medium">
+                            {qt.showFieldName} &rarr; {qt.askFieldName}
+                          </span>
+                          {isDetermining && hasAnyProgress && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                              determines mastery
+                            </span>
                           )}
                         </div>
-                      ) : (
-                        <div className="text-muted italic">Not yet studied</div>
-                      )}
-                    </div>
-                  ))}
+                        {qt.progress ? (
+                          <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-4 gap-y-1.5">
+                            <FsrsParam
+                              label="State"
+                              value={`${qt.progress.state} (${STATE_LABELS[qt.progress.state] ?? "?"})`}
+                            />
+                            <FsrsParam
+                              label="Stability"
+                              value={`${qt.progress.stability.toFixed(2)} d`}
+                              highlight={isDetermining}
+                            />
+                            <FsrsParam
+                              label="Difficulty"
+                              value={qt.progress.difficulty.toFixed(2)}
+                            />
+                            <FsrsParam
+                              label="Reps"
+                              value={qt.progress.reps}
+                            />
+                            <FsrsParam
+                              label="Lapses"
+                              value={qt.progress.lapses}
+                            />
+                            <FsrsParam
+                              label="Interval"
+                              value={`${qt.progress.scheduledDays} d`}
+                            />
+                            <FsrsParam
+                              label="Elapsed"
+                              value={`${qt.progress.elapsedDays} d`}
+                            />
+                            <FsrsParam
+                              label="Steps"
+                              value={qt.progress.learningSteps}
+                            />
+                            <FsrsParam
+                              label="Due"
+                              value={formatDueDate(qt.progress.dueDate)}
+                            />
+                            <FsrsParam
+                              label="Last Review"
+                              value={qt.progress.lastReviewed ? formatDueDate(qt.progress.lastReviewed) : "Never"}
+                            />
+                            {isDetermining && (
+                              <div className="col-span-3 sm:col-span-5 mt-0.5">
+                                <span className="text-[10px] text-primary">
+                                  mastery score = min(1, log({qt.progress.stability.toFixed(2)}) / log(365)) = {(getMasteryScore(qt.progress.stability) * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-muted italic">
+                            Not yet studied
+                            {isDetermining && (
+                              <span className="text-primary not-italic ml-2 text-[10px]">
+                                (effective stability = 0)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

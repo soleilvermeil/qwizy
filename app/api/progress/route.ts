@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { calculateNextReview, type Rating } from "@/lib/sm2";
+import { reviewCard, type AppRating, type DBProgress } from "@/lib/fsrs";
 
 // POST /api/progress - Update card progress after review
 export async function POST(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get existing progress or use defaults
+    // Get existing progress or null for new card
     const existingProgress = await prisma.userProgress.findUnique({
       where: {
         userId_cardId_showFieldId_askFieldId: {
@@ -51,17 +51,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const currentEF = existingProgress?.easinessFactor || 2.5;
-    const currentInterval = existingProgress?.interval || 0;
-    const currentRepetitions = existingProgress?.repetitions || 0;
+    const dbProgress: DBProgress | null = existingProgress
+      ? {
+          stability: existingProgress.stability,
+          difficulty: existingProgress.difficulty,
+          state: existingProgress.state,
+          reps: existingProgress.reps,
+          lapses: existingProgress.lapses,
+          scheduledDays: existingProgress.scheduledDays,
+          elapsedDays: existingProgress.elapsedDays,
+          learningSteps: existingProgress.learningSteps,
+          dueDate: existingProgress.dueDate,
+          lastReviewed: existingProgress.lastReviewed,
+        }
+      : null;
 
-    // Calculate new values using SM-2
-    const sm2Result = calculateNextReview(
-      rating as Rating,
-      currentEF,
-      currentInterval,
-      currentRepetitions
-    );
+    // Calculate new values using FSRS
+    const result = reviewCard(rating as AppRating, dbProgress);
 
     // Update or create progress
     const progress = await prisma.userProgress.upsert({
@@ -74,10 +80,15 @@ export async function POST(request: NextRequest) {
         },
       },
       update: {
-        easinessFactor: sm2Result.easinessFactor,
-        interval: sm2Result.interval,
-        repetitions: sm2Result.repetitions,
-        dueDate: sm2Result.dueDate,
+        stability: result.stability,
+        difficulty: result.difficulty,
+        state: result.state,
+        reps: result.reps,
+        lapses: result.lapses,
+        scheduledDays: result.scheduledDays,
+        elapsedDays: result.elapsedDays,
+        learningSteps: result.learningSteps,
+        dueDate: result.dueDate,
         lastReviewed: new Date(),
       },
       create: {
@@ -85,22 +96,29 @@ export async function POST(request: NextRequest) {
         cardId,
         showFieldId,
         askFieldId,
-        easinessFactor: sm2Result.easinessFactor,
-        interval: sm2Result.interval,
-        repetitions: sm2Result.repetitions,
-        dueDate: sm2Result.dueDate,
+        stability: result.stability,
+        difficulty: result.difficulty,
+        state: result.state,
+        reps: result.reps,
+        lapses: result.lapses,
+        scheduledDays: result.scheduledDays,
+        elapsedDays: result.elapsedDays,
+        learningSteps: result.learningSteps,
+        dueDate: result.dueDate,
         lastReviewed: new Date(),
       },
     });
 
     return NextResponse.json({
       progress: {
-        easinessFactor: progress.easinessFactor,
-        interval: progress.interval,
-        repetitions: progress.repetitions,
+        stability: progress.stability,
+        difficulty: progress.difficulty,
+        state: progress.state,
+        scheduledDays: progress.scheduledDays,
+        reps: progress.reps,
         dueDate: progress.dueDate,
       },
-      nextReviewIn: sm2Result.interval,
+      nextReviewIn: result.scheduledDays,
     });
   } catch (error) {
     console.error("Error updating progress:", error);

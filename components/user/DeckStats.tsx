@@ -16,7 +16,7 @@ interface DeckStatsProps {
     newAvailable: number;
     byMastery: Record<MasteryLevel, number>;
     upcoming: UpcomingDay[];
-    averageEF: number;
+    averageDifficulty: number;
     totalReviews: number;
   };
 }
@@ -206,10 +206,10 @@ export function DeckStats({ stats }: DeckStatsProps) {
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm text-muted-foreground">Average Ease</div>
-              <div className="text-xl font-semibold">{stats.averageEF.toFixed(2)}</div>
+              <div className="text-sm text-muted-foreground">Average Difficulty</div>
+              <div className="text-xl font-semibold">{stats.averageDifficulty.toFixed(1)}</div>
               <div className="text-xs text-muted-foreground">
-                {stats.averageEF >= 2.5 ? "Good" : stats.averageEF >= 2.0 ? "Fair" : "Challenging"}
+                {stats.averageDifficulty <= 3 ? "Easy" : stats.averageDifficulty <= 6 ? "Moderate" : "Challenging"}
               </div>
             </div>
             <div>

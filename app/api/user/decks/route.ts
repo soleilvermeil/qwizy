@@ -47,7 +47,7 @@ export async function GET() {
           select: {
             cardId: true,
             dueDate: true,
-            repetitions: true,
+            reps: true,
           },
         });
 
@@ -57,7 +57,7 @@ export async function GET() {
 
         // Count cards that are due today
         const dueCards = progress.filter(
-          (p) => new Date(p.dueDate) <= now && p.repetitions > 0
+          (p) => new Date(p.dueDate) <= now && p.reps > 0
         ).length;
 
         // Get user's daily new card limit

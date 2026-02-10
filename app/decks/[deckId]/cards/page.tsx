@@ -24,9 +24,14 @@ interface QuestionTypeProgress {
   showFieldName: string;
   askFieldName: string;
   progress: {
-    repetitions: number;
-    interval: number;
-    easinessFactor: number;
+    stability: number;
+    difficulty: number;
+    state: number;
+    reps: number;
+    lapses: number;
+    scheduledDays: number;
+    elapsedDays: number;
+    learningSteps: number;
     dueDate: string;
     lastReviewed: string | null;
   } | null;
