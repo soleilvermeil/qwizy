@@ -1,16 +1,16 @@
 /**
- * Mastery Level Utilities
+ * Stability Level Utilities
  *
  * Categorizes cards based on the lowest stability across all question types:
  * - Not Seen: No progress record for any question type
- * - Learning: mastery score < 33%
- * - Review: 33% <= mastery score < 67%
- * - Mastered: mastery score >= 67%
+ * - Low stability: score < 33%
+ * - Medium stability: 33% <= score < 67%
+ * - High stability: score >= 67%
  *
- * Mastery score: f(stability) = min(1, log(stability) / log(365))
+ * Score: f(stability) = min(1, stability / 365)
  */
 
-export type MasteryLevel = "not_seen" | "learning" | "review" | "mastered";
+export type MasteryLevel = "not_seen" | "low" | "medium" | "high";
 
 export interface MasteryInfo {
   level: MasteryLevel;
@@ -26,34 +26,34 @@ export const MASTERY_LEVELS: Record<MasteryLevel, MasteryInfo> = {
     color: "muted",
     description: "Cards you haven't studied yet",
   },
-  learning: {
-    level: "learning",
-    label: "Learning",
+  low: {
+    level: "low",
+    label: "Low stability",
     color: "primary",
-    description: "Cards you're just starting to learn",
+    description: "Cards with low retention stability",
   },
-  review: {
-    level: "review",
-    label: "Review",
+  medium: {
+    level: "medium",
+    label: "Medium stability",
     color: "warning",
-    description: "Cards in active review cycle",
+    description: "Cards with moderate retention stability",
   },
-  mastered: {
-    level: "mastered",
-    label: "Mastered",
+  high: {
+    level: "high",
+    label: "High stability",
     color: "success",
-    description: "Cards you know well",
+    description: "Cards with high retention stability",
   },
 };
 
 /**
- * Compute the mastery score for a given stability.
- * f(stability) = min(1, log(stability) / log(365))
+ * Compute the stability score for a given stability.
+ * f(stability) = min(1, stability / 365)
  * Returns a value between 0 and 1.
  */
 export function getMasteryScore(stability: number): number {
-  if (stability <= 1) return 0;
-  return Math.min(1, Math.log(stability) / Math.log(365));
+  if (stability <= 0) return 0;
+  return Math.min(1, stability / 365);
 }
 
 /**
@@ -70,9 +70,9 @@ export function getMasteryLevel(
 
   const score = getMasteryScore(lowestStability);
 
-  if (score >= 0.67) return "mastered";
-  if (score >= 0.33) return "review";
-  return "learning";
+  if (score >= 0.67) return "high";
+  if (score >= 0.33) return "medium";
+  return "low";
 }
 
 /**

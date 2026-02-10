@@ -152,9 +152,9 @@ export async function GET(
     // Count by mastery level
     const masteryCount: Record<MasteryLevel, number> = {
       not_seen: 0,
-      learning: 0,
-      review: 0,
-      mastered: 0,
+      low: 0,
+      medium: 0,
+      high: 0,
     };
     for (const card of cardsWithProgress) {
       masteryCount[card.mastery]++;

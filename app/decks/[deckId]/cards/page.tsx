@@ -54,7 +54,7 @@ interface DeckData {
   questionTypes: QuestionType[];
 }
 
-const MASTERY_TABS: MasteryLevel[] = ["not_seen", "learning", "review", "mastered"];
+const MASTERY_TABS: MasteryLevel[] = ["not_seen", "low", "medium", "high"];
 
 export default function UserCardsPage() {
   const params = useParams();
@@ -65,9 +65,9 @@ export default function UserCardsPage() {
   const [cards, setCards] = useState<CardData[]>([]);
   const [counts, setCounts] = useState<Record<MasteryLevel, number>>({
     not_seen: 0,
-    learning: 0,
-    review: 0,
-    mastered: 0,
+    low: 0,
+    medium: 0,
+    high: 0,
   });
   const [activeTab, setActiveTab] = useState<MasteryLevel | "all">("all");
   const [isLoading, setIsLoading] = useState(true);

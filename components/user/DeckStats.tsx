@@ -32,9 +32,9 @@ export function DeckStats({ stats }: DeckStatsProps) {
   // Calculate percentages for the donut chart
   const total = stats.total || 1;
   const masteryData = [
-    { level: "mastered" as MasteryLevel, count: stats.byMastery.mastered, color: "#7CB374" },
-    { level: "review" as MasteryLevel, count: stats.byMastery.review, color: "#9AB34A" },
-    { level: "learning" as MasteryLevel, count: stats.byMastery.learning, color: "#D4A574" },
+    { level: "high" as MasteryLevel, count: stats.byMastery.high, color: "#7CB374" },
+    { level: "medium" as MasteryLevel, count: stats.byMastery.medium, color: "#9AB34A" },
+    { level: "low" as MasteryLevel, count: stats.byMastery.low, color: "#D4A574" },
     { level: "not_seen" as MasteryLevel, count: stats.byMastery.not_seen, color: "#9ca3af" },
   ];
 
@@ -100,7 +100,7 @@ export function DeckStats({ stats }: DeckStatsProps) {
       {/* Mastery Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Mastery Breakdown</CardTitle>
+          <CardTitle>Stability Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-6">
@@ -118,10 +118,10 @@ export function DeckStats({ stats }: DeckStatsProps) {
                 <div className="text-center">
                   <div className="text-xl font-bold">
                     {stats.total > 0 
-                      ? Math.round((stats.byMastery.mastered / total) * 100)
+                      ? Math.round((stats.byMastery.high / total) * 100)
                       : 0}%
                   </div>
-                  <div className="text-xs text-muted-foreground">Mastered</div>
+                  <div className="text-xs text-muted-foreground">High</div>
                 </div>
               </div>
             </div>

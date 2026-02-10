@@ -132,9 +132,9 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
         const masteryInfo = MASTERY_LEVELS[card.mastery];
         const masteryColorClass = {
           not_seen: "bg-gray-100 text-gray-600",
-          learning: "bg-primary/10 text-primary",
-          review: "bg-warning/10 text-warning",
-          mastered: "bg-success/10 text-success",
+          low: "bg-primary/10 text-primary",
+          medium: "bg-warning/10 text-warning",
+          high: "bg-success/10 text-success",
         }[card.mastery];
 
         const hasAnyProgress = card.questionTypeProgress.some(
@@ -259,7 +259,7 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                             {isDetermining && (
                               <div className="col-span-3 sm:col-span-5 mt-0.5">
                                 <span className="text-[10px] text-primary">
-                                  mastery score = min(1, log({qt.progress.stability.toFixed(2)}) / log(365)) = {(getMasteryScore(qt.progress.stability) * 100).toFixed(1)}%
+                                  score = min(1, {qt.progress.stability.toFixed(2)} / 365) = {(getMasteryScore(qt.progress.stability) * 100).toFixed(1)}%
                                 </span>
                               </div>
                             )}
