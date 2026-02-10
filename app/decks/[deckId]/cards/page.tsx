@@ -28,7 +28,10 @@ interface QuestionTypeProgress {
     difficulty: number;
     state: number;
     reps: number;
+    lapses: number;
     scheduledDays: number;
+    elapsedDays: number;
+    learningSteps: number;
     dueDate: string;
     lastReviewed: string | null;
   } | null;
