@@ -42,6 +42,8 @@ interface QuestionType {
   showFieldId: string;
   askFieldId: string;
   position: number;
+  useAsQuestion: boolean;
+  useAsExplanation: boolean;
   showTtsLang: string | null;
   showTtsFieldId: string | null;
   showTtsStopAt: string | null;
@@ -86,6 +88,8 @@ export default function EditDeckPage({ params }: PageProps) {
   const [newAskTtsLang, setNewAskTtsLang] = useState("");
   const [newAskTtsFieldId, setNewAskTtsFieldId] = useState("");
   const [newAskTtsStopAt, setNewAskTtsStopAt] = useState("");
+  const [newUseAsQuestion, setNewUseAsQuestion] = useState(true);
+  const [newUseAsExplanation, setNewUseAsExplanation] = useState(false);
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -230,6 +234,8 @@ export default function EditDeckPage({ params }: PageProps) {
         body: JSON.stringify({
           showFieldId: newShowFieldId,
           askFieldId: newAskFieldId,
+          useAsQuestion: newUseAsQuestion,
+          useAsExplanation: newUseAsExplanation,
           showTtsLang: newShowTtsLang || undefined,
           showTtsFieldId: newShowTtsFieldId || undefined,
           showTtsStopAt: newShowTtsStopAt || undefined,
@@ -254,6 +260,8 @@ export default function EditDeckPage({ params }: PageProps) {
       setNewAskTtsLang("");
       setNewAskTtsFieldId("");
       setNewAskTtsStopAt("");
+      setNewUseAsQuestion(true);
+      setNewUseAsExplanation(false);
       fetchDeck();
     } catch (error) {
       console.error("Error adding question type:", error);
@@ -379,6 +387,8 @@ export default function EditDeckPage({ params }: PageProps) {
                   setNewAskTtsLang("");
                   setNewAskTtsFieldId("");
                   setNewAskTtsStopAt("");
+                  setNewUseAsQuestion(true);
+                  setNewUseAsExplanation(false);
                 }}
                 disabled={deck.fields.length < 2}
               >
@@ -459,6 +469,12 @@ export default function EditDeckPage({ params }: PageProps) {
                         </span>
                       )}
                     </div>
+                    {qt.useAsQuestion && (
+                      <span className="px-1.5 py-0.5 bg-warning/10 text-warning rounded text-xs font-medium">Q</span>
+                    )}
+                    {qt.useAsExplanation && (
+                      <span className="px-1.5 py-0.5 bg-success/10 text-success rounded text-xs font-medium">E</span>
+                    )}
                   </div>
                   <Button
                     variant="ghost"
@@ -608,6 +624,27 @@ export default function EditDeckPage({ params }: PageProps) {
                         )}
                       </div>
                     </div>
+                  </div>
+                  {/* Use as question / explanation checkboxes */}
+                  <div className="border-t border-border pt-3 flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newUseAsQuestion}
+                        onChange={(e) => setNewUseAsQuestion(e.target.checked)}
+                        className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+                      />
+                      <span className="text-foreground">Use as question</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newUseAsExplanation}
+                        onChange={(e) => setNewUseAsExplanation(e.target.checked)}
+                        className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+                      />
+                      <span className="text-foreground">Use as explanation</span>
+                    </label>
                   </div>
                   {questionTypeError && (
                     <p className="text-sm text-error">{questionTypeError}</p>

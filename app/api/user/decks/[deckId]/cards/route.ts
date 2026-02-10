@@ -102,6 +102,8 @@ export async function GET(
           askFieldId: qt.askFieldId,
           showFieldName: fieldNameMap.get(qt.showFieldId) || qt.showFieldId,
           askFieldName: fieldNameMap.get(qt.askFieldId) || qt.askFieldId,
+          useAsQuestion: qt.useAsQuestion,
+          useAsExplanation: qt.useAsExplanation,
           progress: p
             ? {
                 stability: p.stability,
@@ -119,10 +121,11 @@ export async function GET(
         };
       });
 
-      // Compute mastery from the lowest stability across all question types
-      const stabilities = questionTypeProgress.map(
-        (qt) => qt.progress?.stability ?? null
-      );
+      // Compute mastery from the lowest stability across question types only
+      // (explanation-only types have no FSRS progress and should not affect mastery)
+      const stabilities = questionTypeProgress
+        .filter((qt) => qt.useAsQuestion)
+        .map((qt) => qt.progress?.stability ?? null);
       const lowestStability = getLowestStability(stabilities);
       const mastery = getMasteryLevel(lowestStability);
 

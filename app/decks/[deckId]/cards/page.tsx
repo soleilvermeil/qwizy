@@ -23,6 +23,8 @@ interface QuestionTypeProgress {
   askFieldId: string;
   showFieldName: string;
   askFieldName: string;
+  useAsQuestion?: boolean;
+  useAsExplanation?: boolean;
   progress: {
     stability: number;
     difficulty: number;

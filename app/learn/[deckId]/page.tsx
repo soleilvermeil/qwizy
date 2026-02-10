@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent } from "@/components/ui";
-import { FlashCard, ProgressBar, SessionSummary } from "@/components/user";
+import { FlashCard, ProgressBar, SessionSummary, TeachCard } from "@/components/user";
 import type { TtsPlayback } from "@/components/user/FlashCard";
 import { previewAllRatings, type DBProgress } from "@/lib/fsrs";
 import { formatInterval } from "@/lib/mastery";
@@ -48,6 +48,19 @@ interface QuestionItem {
   askTts: TtsConfig | null;
 }
 
+interface ExplanationItem {
+  cardId: string;
+  showFieldId: string;
+  askFieldId: string;
+  values: CardValue[];
+  showTts: TtsConfig | null;
+  askTts: TtsConfig | null;
+}
+
+type SessionItem =
+  | { type: "question"; question: QuestionItem }
+  | { type: "explanation"; explanation: ExplanationItem };
+
 interface Deck {
   id: string;
   name: string;
@@ -59,6 +72,7 @@ interface SessionStats {
   total: number;
   due: number;
   new: number;
+  explanations: number;
   reviewCards: number;
   newCards: number;
 }
@@ -79,7 +93,7 @@ export default function LearnPage({ params }: PageProps) {
   const { deckId } = use(params);
   const router = useRouter();
   const [deck, setDeck] = useState<Deck | null>(null);
-  const [questions, setQuestions] = useState<QuestionItem[]>([]);
+  const [sessionItems, setSessionItems] = useState<SessionItem[]>([]);
   const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -104,9 +118,24 @@ export default function LearnPage({ params }: PageProps) {
       if (!response.ok) throw new Error("Failed to fetch session");
       const data = await response.json();
       setDeck(data.deck);
-      setQuestions(data.questions);
       setSessionStats(data.stats);
       setHasMoreNewCards(data.hasMoreNewCards ?? false);
+
+      // Build unified session list: due reviews -> explanations -> new questions
+      const questions: QuestionItem[] = data.questions;
+      const explanations: ExplanationItem[] = data.explanations ?? [];
+      const dueCount = data.stats.due;
+
+      const dueQuestions = questions.slice(0, dueCount);
+      const newQuestions = questions.slice(dueCount);
+
+      const items: SessionItem[] = [
+        ...dueQuestions.map((q): SessionItem => ({ type: "question", question: q })),
+        ...explanations.map((e): SessionItem => ({ type: "explanation", explanation: e })),
+        ...newQuestions.map((q): SessionItem => ({ type: "question", question: q })),
+      ];
+
+      setSessionItems(items);
       setCurrentIndex(0);
       setIsComplete(false);
       setReviewStats({ total: 0, easy: 0, good: 0, hard: 0, failed: 0 });
@@ -126,11 +155,13 @@ export default function LearnPage({ params }: PageProps) {
     fetchSession(true);
   }, [fetchSession]);
 
-  // Compute interval previews for each rating button
+  // Get the current session item
+  const currentItem = sessionItems[currentIndex] ?? null;
+
+  // Compute interval previews for each rating button (only for questions)
   const intervalPreviews = useMemo(() => {
-    const question = questions[currentIndex];
-    if (!question) return undefined;
-    const progress = question.progress;
+    if (!currentItem || currentItem.type !== "question") return undefined;
+    const progress = currentItem.question.progress;
     const dbProgress: DBProgress | null = progress
       ? {
           stability: progress.stability,
@@ -152,13 +183,13 @@ export default function LearnPage({ params }: PageProps) {
       good: formatInterval(raw.good),
       easy: formatInterval(raw.easy),
     };
-  }, [questions, currentIndex]);
+  }, [currentItem]);
 
   const handleRate = async (rating: "failed" | "hard" | "good" | "easy") => {
-    if (!deck || currentIndex >= questions.length) return;
+    if (!deck || !currentItem || currentItem.type !== "question") return;
 
     setIsSubmitting(true);
-    const currentQuestion = questions[currentIndex];
+    const currentQuestion = currentItem.question;
 
     try {
       const response = await fetch("/api/progress", {
@@ -201,12 +232,11 @@ export default function LearnPage({ params }: PageProps) {
             lastReviewed: data.progress.lastReviewed ?? null,
           },
         };
-        setQuestions((prev) => [...prev, retriedQuestion]);
+        setSessionItems((prev) => [...prev, { type: "question", question: retriedQuestion }]);
       }
 
-      // Move to next question (or complete if no more questions)
-      if (currentIndex + 1 >= questions.length && rating !== "failed") {
-        // Only complete if we didn't just add a retry question
+      // Move to next item (or complete if no more items)
+      if (currentIndex + 1 >= sessionItems.length && rating !== "failed") {
         setIsComplete(true);
       } else {
         setCurrentIndex(currentIndex + 1);
@@ -218,6 +248,32 @@ export default function LearnPage({ params }: PageProps) {
     }
   };
 
+  const handleContinueExplanation = () => {
+    if (currentIndex + 1 >= sessionItems.length) {
+      setIsComplete(true);
+    } else {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  // Resolve TTS config into playback data
+  function resolveTts(
+    ttsConfig: TtsConfig | null,
+    values: CardValue[]
+  ): TtsPlayback | null {
+    if (!ttsConfig) return null;
+    const rawText = values.find((v) => v.fieldId === ttsConfig.fieldId)?.value || "";
+    if (!rawText) return null;
+    let text = rawText;
+    if (ttsConfig.stopAt) {
+      const idx = text.indexOf(ttsConfig.stopAt);
+      if (idx !== -1) {
+        text = text.substring(0, idx).trim();
+      }
+    }
+    return { lang: ttsConfig.lang, text };
+  }
+
   if (isLoading || !deck) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -226,8 +282,8 @@ export default function LearnPage({ params }: PageProps) {
     );
   }
 
-  // No questions to study
-  if (questions.length === 0) {
+  // No items to study
+  if (sessionItems.length === 0) {
     return (
       <div className="min-h-screen py-8">
         <div className="max-w-lg mx-auto px-4 space-y-6">
@@ -312,35 +368,20 @@ export default function LearnPage({ params }: PageProps) {
     );
   }
 
-  // Get current question values
-  const currentQuestion = questions[currentIndex];
-  const showField = deck.fields.find((f) => f.id === currentQuestion.showFieldId);
-  const askField = deck.fields.find((f) => f.id === currentQuestion.askFieldId);
+  // Render the current item
+  if (!currentItem) return null;
+
+  const isExplanation = currentItem.type === "explanation";
+  const itemData = isExplanation ? currentItem.explanation : currentItem.question;
+
+  const showField = deck.fields.find((f) => f.id === itemData.showFieldId);
+  const askField = deck.fields.find((f) => f.id === itemData.askFieldId);
   const frontValue =
-    currentQuestion.values.find((v) => v.fieldId === currentQuestion.showFieldId)?.value || "";
+    itemData.values.find((v) => v.fieldId === itemData.showFieldId)?.value || "";
   const backValue =
-    currentQuestion.values.find((v) => v.fieldId === currentQuestion.askFieldId)?.value || "";
-
-  // Resolve TTS config into playback data
-  function resolveTts(
-    ttsConfig: TtsConfig | null,
-    values: CardValue[]
-  ): TtsPlayback | null {
-    if (!ttsConfig) return null;
-    const rawText = values.find((v) => v.fieldId === ttsConfig.fieldId)?.value || "";
-    if (!rawText) return null;
-    let text = rawText;
-    if (ttsConfig.stopAt) {
-      const idx = text.indexOf(ttsConfig.stopAt);
-      if (idx !== -1) {
-        text = text.substring(0, idx).trim();
-      }
-    }
-    return { lang: ttsConfig.lang, text };
-  }
-
-  const showTtsPlayback = resolveTts(currentQuestion.showTts, currentQuestion.values);
-  const askTtsPlayback = resolveTts(currentQuestion.askTts, currentQuestion.values);
+    itemData.values.find((v) => v.fieldId === itemData.askFieldId)?.value || "";
+  const showTtsPlayback = resolveTts(itemData.showTts, itemData.values);
+  const askTtsPlayback = resolveTts(itemData.askTts, itemData.values);
 
   return (
     <div className="min-h-screen py-8">
@@ -372,7 +413,7 @@ export default function LearnPage({ params }: PageProps) {
         {/* Progress */}
         <ProgressBar
           current={currentIndex}
-          total={questions.length}
+          total={sessionItems.length}
           label="Progress"
         />
 
@@ -382,24 +423,39 @@ export default function LearnPage({ params }: PageProps) {
             {sessionStats.due > 0 && (
               <span className="text-warning">{sessionStats.due} review</span>
             )}
+            {sessionStats.explanations > 0 && (
+              <span className="text-success">{sessionStats.explanations} teach</span>
+            )}
             {sessionStats.new > 0 && (
               <span className="text-primary">{sessionStats.new} new</span>
             )}
           </div>
         )}
 
-        {/* Flashcard */}
-        <FlashCard
-          front={frontValue}
-          back={backValue}
-          frontLabel={showField?.name || "Front"}
-          backLabel={askField?.name || "Back"}
-          onRate={handleRate}
-          isLoading={isSubmitting}
-          intervalPreviews={intervalPreviews}
-          showTts={showTtsPlayback}
-          askTts={askTtsPlayback}
-        />
+        {/* Card -- TeachCard for explanations, FlashCard for questions */}
+        {isExplanation ? (
+          <TeachCard
+            front={frontValue}
+            back={backValue}
+            frontLabel={showField?.name || "Front"}
+            backLabel={askField?.name || "Back"}
+            onContinue={handleContinueExplanation}
+            showTts={showTtsPlayback}
+            askTts={askTtsPlayback}
+          />
+        ) : (
+          <FlashCard
+            front={frontValue}
+            back={backValue}
+            frontLabel={showField?.name || "Front"}
+            backLabel={askField?.name || "Back"}
+            onRate={handleRate}
+            isLoading={isSubmitting}
+            intervalPreviews={intervalPreviews}
+            showTts={showTtsPlayback}
+            askTts={askTtsPlayback}
+          />
+        )}
       </div>
     </div>
   );

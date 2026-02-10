@@ -31,18 +31,20 @@ model Deck {
 }
 
 model DeckQuestionType {
-  id             String  @id @default(cuid())
-  deckId         String
-  showFieldId    String
-  askFieldId     String
-  position       Int     @default(0)
-  showTtsLang    String?
-  showTtsFieldId String?
-  showTtsStopAt  String?
-  askTtsLang     String?
-  askTtsFieldId  String?
-  askTtsStopAt   String?
-  deck           Deck    @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  id               String  @id @default(cuid())
+  deckId           String
+  showFieldId      String
+  askFieldId       String
+  position         Int     @default(0)
+  useAsQuestion    Boolean @default(true)
+  useAsExplanation Boolean @default(false)
+  showTtsLang      String?
+  showTtsFieldId   String?
+  showTtsStopAt    String?
+  askTtsLang       String?
+  askTtsFieldId    String?
+  askTtsStopAt     String?
+  deck             Deck    @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
   @@unique([deckId, showFieldId, askFieldId])
 }

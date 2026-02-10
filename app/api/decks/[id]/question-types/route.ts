@@ -49,6 +49,8 @@ export async function POST(
     const {
       showFieldId,
       askFieldId,
+      useAsQuestion,
+      useAsExplanation,
       showTtsLang,
       showTtsFieldId,
       showTtsStopAt,
@@ -117,6 +119,8 @@ export async function POST(
         showFieldId,
         askFieldId,
         position: (maxPosition?.position ?? -1) + 1,
+        useAsQuestion: useAsQuestion ?? true,
+        useAsExplanation: useAsExplanation ?? false,
         showTtsLang: showTtsLang || null,
         showTtsFieldId: showTtsLang ? (showTtsFieldId || null) : null,
         showTtsStopAt: showTtsLang ? (showTtsStopAt || null) : null,

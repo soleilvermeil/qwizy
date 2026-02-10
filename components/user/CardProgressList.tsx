@@ -8,6 +8,8 @@ interface QuestionTypeProgress {
   askFieldId: string;
   showFieldName: string;
   askFieldName: string;
+  useAsQuestion?: boolean;
+  useAsExplanation?: boolean;
   progress: {
     stability: number;
     difficulty: number;
@@ -51,6 +53,7 @@ const STATE_LABELS: Record<number, string> = {
 
 /**
  * Find the index of the question type with the lowest stability.
+ * Only considers types where useAsQuestion is true (or undefined for backward compat).
  * This is the one that determines the card's mastery classification.
  * Returns -1 if no progress exists.
  */
@@ -60,7 +63,9 @@ function getDeterminingQtIndex(questionTypeProgress: QuestionTypeProgress[]): nu
 
   for (let i = 0; i < questionTypeProgress.length; i++) {
     const qt = questionTypeProgress[i];
-    // Treat null progress as stability 0 (only if at least one qt has progress)
+    // Skip explanation-only types
+    if (qt.useAsQuestion === false) continue;
+
     const stability = qt.progress !== null ? qt.progress.stability : null;
     if (stability !== null && stability < minStability) {
       minStability = stability;
@@ -70,11 +75,14 @@ function getDeterminingQtIndex(questionTypeProgress: QuestionTypeProgress[]): nu
 
   // If some question types have no progress but others do, the missing ones
   // count as stability 0. Check if any null progress would be the lowest.
-  const hasAnyProgress = questionTypeProgress.some((qt) => qt.progress !== null);
-  if (hasAnyProgress) {
+  const hasAnyQuestionProgress = questionTypeProgress.some(
+    (qt) => qt.useAsQuestion !== false && qt.progress !== null
+  );
+  if (hasAnyQuestionProgress) {
     for (let i = 0; i < questionTypeProgress.length; i++) {
-      if (questionTypeProgress[i].progress === null && 0 < minStability) {
-        // A missing question type has effective stability 0, which is lower
+      const qt = questionTypeProgress[i];
+      if (qt.useAsQuestion === false) continue;
+      if (qt.progress === null && 0 < minStability) {
         return i;
       }
     }
@@ -174,6 +182,7 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                 <div className="mt-3 pt-3 border-t border-border space-y-2">
                   {card.questionTypeProgress.map((qt, qtIndex) => {
                     const isDetermining = qtIndex === determiningIndex;
+                    const isExplanationOnly = qt.useAsQuestion === false && qt.useAsExplanation === true;
 
                     return (
                       <div
@@ -188,13 +197,23 @@ export function CardProgressList({ cards, fields, onCardClick }: CardProgressLis
                           <span className="text-muted-foreground font-medium">
                             {qt.showFieldName} &rarr; {qt.askFieldName}
                           </span>
+                          {qt.useAsQuestion !== false && (
+                            <span className="text-[10px] px-1 py-0.5 rounded bg-warning/10 text-warning font-medium">Q</span>
+                          )}
+                          {qt.useAsExplanation && (
+                            <span className="text-[10px] px-1 py-0.5 rounded bg-success/10 text-success font-medium">E</span>
+                          )}
                           {isDetermining && hasAnyProgress && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
                               determines mastery
                             </span>
                           )}
                         </div>
-                        {qt.progress ? (
+                        {isExplanationOnly ? (
+                          <div className="text-muted italic">
+                            Explanation only &mdash; no tracking
+                          </div>
+                        ) : qt.progress ? (
                           <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-4 gap-y-1.5">
                             <FsrsParam
                               label="State"

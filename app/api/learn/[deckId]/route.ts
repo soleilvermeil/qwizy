@@ -91,19 +91,24 @@ export async function GET(
       askTts: TtsConfig | null;
     }
 
-    let fieldPairs: FieldPair[];
+    let questionPairs: FieldPair[] = [];
+    let explanationPairs: FieldPair[] = [];
 
     if (deck.questionTypes.length > 0) {
-      fieldPairs = deck.questionTypes.map((qt) => ({
-        showFieldId: qt.showFieldId,
-        askFieldId: qt.askFieldId,
-        showTts: qt.showTtsLang && qt.showTtsFieldId
-          ? { lang: qt.showTtsLang, fieldId: qt.showTtsFieldId, stopAt: qt.showTtsStopAt }
-          : null,
-        askTts: qt.askTtsLang && qt.askTtsFieldId
-          ? { lang: qt.askTtsLang, fieldId: qt.askTtsFieldId, stopAt: qt.askTtsStopAt }
-          : null,
-      }));
+      for (const qt of deck.questionTypes) {
+        const pair: FieldPair = {
+          showFieldId: qt.showFieldId,
+          askFieldId: qt.askFieldId,
+          showTts: qt.showTtsLang && qt.showTtsFieldId
+            ? { lang: qt.showTtsLang, fieldId: qt.showTtsFieldId, stopAt: qt.showTtsStopAt }
+            : null,
+          askTts: qt.askTtsLang && qt.askTtsFieldId
+            ? { lang: qt.askTtsLang, fieldId: qt.askTtsFieldId, stopAt: qt.askTtsStopAt }
+            : null,
+        };
+        if (qt.useAsQuestion) questionPairs.push(pair);
+        if (qt.useAsExplanation) explanationPairs.push(pair);
+      }
     } else {
       if (deck.fields.length < 2) {
         return NextResponse.json(
@@ -111,7 +116,7 @@ export async function GET(
           { status: 400 }
         );
       }
-      fieldPairs = [
+      questionPairs = [
         {
           showFieldId: deck.fields[0].id,
           askFieldId: deck.fields[1].id,
@@ -119,6 +124,17 @@ export async function GET(
           askTts: null,
         },
       ];
+    }
+
+    // Combined field pairs for the response (all unique pairs)
+    const allPairKeys = new Set<string>();
+    const fieldPairs: FieldPair[] = [];
+    for (const pair of [...questionPairs, ...explanationPairs]) {
+      const key = `${pair.showFieldId}:${pair.askFieldId}`;
+      if (!allPairKeys.has(key)) {
+        allPairKeys.add(key);
+        fieldPairs.push(pair);
+      }
     }
 
     // Get user settings
@@ -154,6 +170,7 @@ export async function GET(
     );
 
     // Categorize cards into due (have progress and overdue) and new (no progress)
+    // Only question pairs generate FSRS progress, so use those for categorization
     const dueQuestions: QuestionItem[] = [];
     const newCardIds: string[] = [];
     const reviewCardIds = new Set<string>();
@@ -161,7 +178,7 @@ export async function GET(
     for (const card of allCards) {
       let hasAnyProgress = false;
 
-      for (const pair of fieldPairs) {
+      for (const pair of questionPairs) {
         const key = `${card.id}:${pair.showFieldId}:${pair.askFieldId}`;
         const progress = progressMap.get(key);
 
@@ -215,18 +232,48 @@ export async function GET(
     const limitedNewCardIds = new Set(newCardIds.slice(0, effectiveNewCardLimit));
     const totalUnseenCards = newCardIds.length;
 
-    // Generate questions for new cards (all field pairs for each new card)
+    // Generate questions for new cards (only question pairs)
     const newQuestions: QuestionItem[] = [];
     for (const card of allCards) {
       if (!limitedNewCardIds.has(card.id)) continue;
 
-      for (const pair of fieldPairs) {
+      for (const pair of questionPairs) {
         newQuestions.push({
           cardId: card.id,
           showFieldId: pair.showFieldId,
           askFieldId: pair.askFieldId,
           values: card.values,
           progress: null,
+          showTts: pair.showTts,
+          askTts: pair.askTts,
+        });
+      }
+    }
+
+    // Generate explanations for new cards (ordered by card position,
+    // all explanations for card A, then card B, then card C)
+    interface ExplanationItem {
+      cardId: string;
+      showFieldId: string;
+      askFieldId: string;
+      values: { id: string; fieldId: string; value: string }[];
+      showTts: TtsConfig | null;
+      askTts: TtsConfig | null;
+    }
+
+    const newExplanations: ExplanationItem[] = [];
+    // allCards is already ordered by position from the query, but filter to new cards
+    const newCardsInOrder = allCards
+      .filter((c) => limitedNewCardIds.has(c.id))
+      .sort((a, b) => a.position - b.position);
+
+    for (const card of newCardsInOrder) {
+      for (const pair of explanationPairs) {
+        newExplanations.push({
+          cardId: card.id,
+          showFieldId: pair.showFieldId,
+          askFieldId: pair.askFieldId,
+          values: card.values,
           showTts: pair.showTts,
           askTts: pair.askTts,
         });
@@ -265,6 +312,15 @@ export async function GET(
       askTts: q.askTts,
     }));
 
+    const explanations = newExplanations.map((e) => ({
+      cardId: e.cardId,
+      showFieldId: e.showFieldId,
+      askFieldId: e.askFieldId,
+      values: e.values,
+      showTts: e.showTts,
+      askTts: e.askTts,
+    }));
+
     // Are there more unseen cards beyond this session?
     const hasMoreNewCards = totalUnseenCards > limitedNewCardIds.size;
 
@@ -276,10 +332,12 @@ export async function GET(
         fieldPairs,
       },
       questions,
+      explanations,
       stats: {
         total: questions.length,
         due: shuffledDue.length,
         new: shuffledNew.length,
+        explanations: explanations.length,
         reviewCards: reviewCardIds.size,
         newCards: limitedNewCardIds.size,
       },
