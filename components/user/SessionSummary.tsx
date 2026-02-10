@@ -14,6 +14,8 @@ interface SessionStats {
 interface SessionSummaryProps {
   deckName: string;
   stats: SessionStats;
+  onContinueReview?: () => void;
+  pendingDueCount?: number;
   onStudyMore: () => void;
   hasMoreNewCards?: boolean;
 }
@@ -21,6 +23,8 @@ interface SessionSummaryProps {
 export function SessionSummary({
   deckName,
   stats,
+  onContinueReview,
+  pendingDueCount = 0,
   onStudyMore,
   hasMoreNewCards = false,
 }: SessionSummaryProps) {
@@ -94,16 +98,31 @@ export function SessionSummary({
 
           {/* Actions */}
           <div className="flex flex-col gap-2 pt-4">
-            {hasMoreNewCards && (
-              <Button onClick={onStudyMore} fullWidth>
-                Study More Cards
-              </Button>
+            {pendingDueCount > 0 && onContinueReview ? (
+              <>
+                <Button onClick={onContinueReview} fullWidth>
+                  Continue Reviewing ({pendingDueCount} card{pendingDueCount !== 1 ? "s" : ""} due)
+                </Button>
+                <Link href="/decks">
+                  <Button variant="secondary" fullWidth>
+                    Back to Decks
+                  </Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                {hasMoreNewCards && (
+                  <Button onClick={onStudyMore} fullWidth>
+                    Learn More Cards
+                  </Button>
+                )}
+                <Link href="/decks">
+                  <Button variant={hasMoreNewCards ? "secondary" : "primary"} fullWidth>
+                    Back to Decks
+                  </Button>
+                </Link>
+              </>
             )}
-            <Link href="/decks">
-              <Button variant={hasMoreNewCards ? "secondary" : "primary"} fullWidth>
-                Back to Decks
-              </Button>
-            </Link>
           </div>
         </div>
       </CardContent>

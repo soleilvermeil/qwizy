@@ -12,7 +12,10 @@ interface DeckProgress {
   totalCards: number;
   learnedCards: number;
   dueCards: number;
+  dueReviews: number;
+  dueLearning: number;
   newCards: number;
+  hasMoreNewCards: boolean;
 }
 
 interface Deck {

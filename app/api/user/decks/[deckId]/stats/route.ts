@@ -90,7 +90,8 @@ export async function GET(
     let difficultyCount = 0;
     let totalReviews = 0;
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
 
     // Map cardId -> mastery level (for upcoming breakdown)
     const cardMasteryMap = new Map<string, MasteryLevel>();
@@ -120,12 +121,13 @@ export async function GET(
       }
     }
 
-    // Count due today
-    const dueToday = progress.filter(p => {
-      const dueDate = new Date(p.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
-      return dueDate <= now && p.reps > 0;
-    }).length;
+    // Count due today, split by state
+    const dueProgress = progress.filter(p => {
+      return new Date(p.dueDate) <= now && p.reps > 0;
+    });
+    const dueToday = dueProgress.length;
+    const dueReviews = dueProgress.filter(p => p.state === 2).length;
+    const dueLearning = dueProgress.filter(p => p.state !== 2).length;
 
     // Get user's daily new card limit
     const user = await prisma.user.findUnique({
@@ -147,7 +149,7 @@ export async function GET(
       if (p.reps === 0) continue;
       const dueDate = new Date(p.dueDate);
       dueDate.setHours(0, 0, 0, 0);
-      const diffDays = Math.floor((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const diffDays = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays < 0 || diffDays >= 7) continue;
 
       const cardLevel = cardMasteryMap.get(p.cardId) ?? "low";
@@ -182,7 +184,10 @@ export async function GET(
         total: cards.length,
         learned: cards.length - masteryCount.not_seen,
         dueToday,
+        dueReviews,
+        dueLearning,
         newAvailable,
+        hasMoreNewCards: masteryCount.not_seen > newAvailable,
         byMastery: masteryCount,
         upcoming,
         averageDifficulty: Math.round(averageDifficulty * 100) / 100,

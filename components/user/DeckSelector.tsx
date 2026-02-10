@@ -12,7 +12,10 @@ interface DeckProgress {
   totalCards: number;
   learnedCards: number;
   dueCards: number;
+  dueReviews: number;
+  dueLearning: number;
   newCards: number;
+  hasMoreNewCards: boolean;
 }
 
 interface Deck {
@@ -140,14 +143,39 @@ export function DeckSelector({ decks }: DeckSelectorProps) {
                     View Stats
                   </Button>
                 </Link>
-                <Link href={`/learn/${deck.id}`} className="flex-1">
-                  <Button fullWidth>
-                    {(() => {
-                      const poolSize = (deck.progress?.dueCards ?? 0) + (deck.progress?.newCards ?? 0);
-                      return poolSize > 0 ? `Start (${poolSize})` : "Start";
-                    })()}
-                  </Button>
-                </Link>
+                {(() => {
+                  const p = deck.progress;
+                  const reviews = p?.dueReviews ?? 0;
+                  const newCards = p?.newCards ?? 0;
+                  const learning = p?.dueLearning ?? 0;
+                  const hasMore = p?.hasMoreNewCards ?? false;
+                  const hasNormalSession = reviews > 0 || newCards > 0;
+                  const hasLearningOnly = !hasNormalSession && learning > 0;
+                  const hasExtraOnly = !hasNormalSession && !hasLearningOnly && hasMore;
+                  const hasAnything = hasNormalSession || hasLearningOnly || hasExtraOnly;
+
+                  if (hasAnything) {
+                    return (
+                      <Link 
+                        href={hasExtraOnly ? `/learn/${deck.id}?extra=true` : `/learn/${deck.id}`} 
+                        className="flex-1"
+                      >
+                        <Button fullWidth>
+                          {hasNormalSession
+                            ? `Start (${reviews + newCards + learning})`
+                            : hasLearningOnly
+                            ? `Continue (${learning})`
+                            : "Learn More"}
+                        </Button>
+                      </Link>
+                    );
+                  }
+                  return (
+                    <Button fullWidth disabled className="flex-1">
+                      No cards due
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           </CardContent>

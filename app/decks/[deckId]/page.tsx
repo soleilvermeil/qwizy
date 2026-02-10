@@ -24,7 +24,10 @@ interface Stats {
   total: number;
   learned: number;
   dueToday: number;
+  dueReviews: number;
+  dueLearning: number;
   newAvailable: number;
+  hasMoreNewCards: boolean;
   byMastery: Record<MasteryLevel, number>;
   upcoming: { newCards: number; low: number; medium: number; high: number }[];
   averageDifficulty: number;
@@ -123,7 +126,11 @@ export default function DeckStatsPage() {
     );
   }
 
-  const hasCardsToStudy = stats.dueToday > 0 || stats.newAvailable > 0;
+  // Determine button state
+  const hasNormalSession = stats.dueReviews > 0 || stats.newAvailable > 0;
+  const hasLearningOnly = !hasNormalSession && stats.dueLearning > 0;
+  const hasExtraOnly = !hasNormalSession && !hasLearningOnly && stats.hasMoreNewCards;
+  const hasAnything = hasNormalSession || hasLearningOnly || hasExtraOnly;
 
   return (
     <div className="space-y-6">
@@ -148,25 +155,39 @@ export default function DeckStatsPage() {
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <Link href={`/learn/${deckId}`} className="flex-1">
-          <Button
-            className="w-full"
-            size="lg"
-            disabled={!hasCardsToStudy}
-          >
-            {hasCardsToStudy ? (
-              <>
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Study Now ({stats.dueToday + stats.newAvailable} cards)
-              </>
-            ) : (
-              "No cards due"
-            )}
+        {hasAnything ? (
+          <Link href={hasExtraOnly ? `/learn/${deckId}?extra=true` : `/learn/${deckId}`} className="flex-1">
+            <Button className="w-full" size="lg">
+              {hasNormalSession ? (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Study Now ({stats.dueReviews + stats.dueLearning + stats.newAvailable} cards)
+                </>
+              ) : hasLearningOnly ? (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Continue Reviewing ({stats.dueLearning} card{stats.dueLearning !== 1 ? "s" : ""} due)
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Learn More Cards
+                </>
+              )}
+            </Button>
+          </Link>
+        ) : (
+          <Button className="flex-1" size="lg" disabled>
+            No cards due
           </Button>
-        </Link>
+        )}
         <Link href={`/decks/${deckId}/cards`}>
           <Button variant="outline" size="lg" className="w-full sm:w-auto">
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

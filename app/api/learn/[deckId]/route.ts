@@ -61,7 +61,6 @@ export async function GET(
     const { deckId } = await params;
     const userId = session.userId;
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
 
     // Get deck with fields and question types
     const deck = await prisma.deck.findUnique({

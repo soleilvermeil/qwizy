@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, use, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardContent } from "@/components/ui";
 import { FlashCard, ProgressBar, SessionSummary, TeachCard } from "@/components/user";
@@ -92,6 +92,8 @@ interface PageProps {
 export default function LearnPage({ params }: PageProps) {
   const { deckId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialExtra = searchParams.get("extra") === "true";
   const [deck, setDeck] = useState<Deck | null>(null);
   const [sessionItems, setSessionItems] = useState<SessionItem[]>([]);
   const [sessionStats, setSessionStats] = useState<SessionStats | null>(null);
@@ -100,6 +102,7 @@ export default function LearnPage({ params }: PageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [hasMoreNewCards, setHasMoreNewCards] = useState(false);
+  const [pendingDueCount, setPendingDueCount] = useState(0);
   const [reviewStats, setReviewStats] = useState<ReviewStats>({
     total: 0,
     easy: 0,
@@ -148,8 +151,28 @@ export default function LearnPage({ params }: PageProps) {
   }, [deckId, router]);
 
   useEffect(() => {
-    fetchSession();
+    fetchSession(initialExtra);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchSession]);
+
+  // When a session completes, check how many due cards remain
+  useEffect(() => {
+    if (!isComplete) return;
+    let cancelled = false;
+    const checkPending = async () => {
+      try {
+        const response = await fetch(`/api/learn/${deckId}`);
+        if (!response.ok || cancelled) return;
+        const data = await response.json();
+        setPendingDueCount(data.stats.due ?? 0);
+        setHasMoreNewCards(data.hasMoreNewCards ?? false);
+      } catch {
+        // ignore
+      }
+    };
+    checkPending();
+    return () => { cancelled = true; };
+  }, [isComplete, deckId]);
 
   const fetchExtra = useCallback(() => {
     fetchSession(true);
@@ -329,13 +352,13 @@ export default function LearnPage({ params }: PageProps) {
                 </h2>
                 <p className="text-muted mb-4">
                   {hasMoreNewCards
-                    ? "Your daily reviews are done. Want to study extra cards?"
+                    ? "Your daily reviews are done. Want to learn extra cards?"
                     : "No cards to review right now. Come back later!"}
                 </p>
                 <div className="flex flex-col gap-2">
                   {hasMoreNewCards && (
                     <Button onClick={fetchExtra} fullWidth>
-                      Study More Cards
+                      Learn More Cards
                     </Button>
                   )}
                   <Link href="/decks">
@@ -360,6 +383,8 @@ export default function LearnPage({ params }: PageProps) {
           <SessionSummary
             deckName={deck.name}
             stats={reviewStats}
+            onContinueReview={fetchSession}
+            pendingDueCount={pendingDueCount}
             onStudyMore={fetchExtra}
             hasMoreNewCards={hasMoreNewCards}
           />
