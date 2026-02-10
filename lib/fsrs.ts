@@ -17,10 +17,10 @@ import {
 } from "ts-fsrs";
 
 // ---------------------------------------------------------------------------
-// Singleton FSRS instance (default parameters, 90 % retention)
+// Singleton FSRS instance (95 % target retention → shorter intervals)
 // ---------------------------------------------------------------------------
 
-const f = fsrs();
+const f = fsrs({ request_retention: 0.95 });
 
 // ---------------------------------------------------------------------------
 // Our app's rating strings  →  ts-fsrs Grade enum
