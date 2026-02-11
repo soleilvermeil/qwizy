@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, Button } from "@/components/ui";
 import type { TtsPlayback } from "./FlashCard";
 
@@ -56,10 +56,29 @@ export function TeachCard({
     return () => cancelSpeech();
   }, []);
 
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     cancelSpeech();
     onContinue();
-  };
+  }, [onContinue]);
+
+  // Keyboard shortcut: Space to continue
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        handleContinue();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleContinue]);
 
   return (
     <Card variant="elevated" padding="lg" className="max-w-lg mx-auto">
@@ -130,7 +149,8 @@ export function TeachCard({
           {/* Continue button */}
           <div className="pt-4 border-t border-border">
             <Button onClick={handleContinue} variant="primary" size="lg" fullWidth>
-              Continue
+              Continue{" "}
+              <kbd className="ml-2 text-xs opacity-50 font-mono">Space</kbd>
             </Button>
           </div>
         </div>

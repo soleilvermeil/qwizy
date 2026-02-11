@@ -84,11 +84,51 @@ export function FlashCard({
     }
   }, [askTts]);
 
-  const handleRate = (rating: "failed" | "hard" | "good" | "easy") => {
-    cancelSpeech();
-    onRate(rating);
-    setIsRevealed(false);
-  };
+  const handleRate = useCallback(
+    (rating: "failed" | "hard" | "good" | "easy") => {
+      cancelSpeech();
+      onRate(rating);
+      setIsRevealed(false);
+    },
+    [onRate],
+  );
+
+  // Keyboard shortcuts: Space to reveal, 0-3 to rate
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      )
+        return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!isRevealed) handleReveal();
+      }
+
+      if (isRevealed && !isLoading) {
+        const ratingMap: Record<
+          string,
+          "failed" | "hard" | "good" | "easy"
+        > = {
+          Digit0: "failed",
+          Digit1: "hard",
+          Digit2: "good",
+          Digit3: "easy",
+          Numpad0: "failed",
+          Numpad1: "hard",
+          Numpad2: "good",
+          Numpad3: "easy",
+        };
+        const rating = ratingMap[e.code];
+        if (rating) handleRate(rating);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isRevealed, isLoading, handleReveal, handleRate]);
 
   return (
     <Card variant="elevated" padding="lg" className="max-w-lg mx-auto">
@@ -176,7 +216,10 @@ export function FlashCard({
                   disabled={isLoading}
                   className="flex-col py-3"
                 >
-                  <span className="text-lg">Failed</span>
+                  <span className="text-lg">
+                    Failed{" "}
+                    <kbd className="text-xs opacity-50 font-mono">0</kbd>
+                  </span>
                   <span className="text-xs opacity-75">
                     {intervalPreviews?.failed ?? "Again"}
                   </span>
@@ -187,7 +230,10 @@ export function FlashCard({
                   disabled={isLoading}
                   className="flex-col py-3"
                 >
-                  <span className="text-lg">Hard</span>
+                  <span className="text-lg">
+                    Hard{" "}
+                    <kbd className="text-xs opacity-50 font-mono">1</kbd>
+                  </span>
                   <span className="text-xs opacity-75">
                     {intervalPreviews?.hard ?? "Soon"}
                   </span>
@@ -198,7 +244,10 @@ export function FlashCard({
                   disabled={isLoading}
                   className="flex-col py-3"
                 >
-                  <span className="text-lg">Good</span>
+                  <span className="text-lg">
+                    Good{" "}
+                    <kbd className="text-xs opacity-50 font-mono">2</kbd>
+                  </span>
                   <span className="text-xs opacity-75">
                     {intervalPreviews?.good ?? "Normal"}
                   </span>
@@ -209,7 +258,10 @@ export function FlashCard({
                   disabled={isLoading}
                   className="flex-col py-3"
                 >
-                  <span className="text-lg">Easy</span>
+                  <span className="text-lg">
+                    Easy{" "}
+                    <kbd className="text-xs opacity-50 font-mono">3</kbd>
+                  </span>
                   <span className="text-xs opacity-75">
                     {intervalPreviews?.easy ?? "Later"}
                   </span>
@@ -217,7 +269,8 @@ export function FlashCard({
               </div>
             ) : (
               <Button onClick={handleReveal} variant="secondary" size="lg" fullWidth>
-                Show Answer
+                Show Answer{" "}
+                <kbd className="ml-2 text-xs opacity-50 font-mono">Space</kbd>
               </Button>
             )}
           </div>
