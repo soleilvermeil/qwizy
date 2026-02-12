@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { legalConfig } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Legal Notice - Open Duolingo",
@@ -12,7 +13,7 @@ export default function LegalNoticePage() {
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Legal Notice
         </h1>
-        <p className="text-muted">Last updated: February 2026</p>
+        <p className="text-muted">Last updated: {legalConfig.lastUpdated}</p>
       </header>
 
       {/* Publisher Information */}
@@ -23,25 +24,25 @@ export default function LegalNoticePage() {
         <div className="bg-secondary rounded-xl p-4 space-y-2 text-sm">
           <p>
             <span className="font-medium text-foreground">Publisher:</span>{" "}
-            <span className="text-warning">[Your Name or Organization]</span>
+            <span className="text-warning">{legalConfig.publisherName}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">Address:</span>{" "}
-            <span className="text-warning">[Your Postal Address]</span>
+            <span className="text-warning">{legalConfig.publisherAddress}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">Email:</span>{" "}
-            <span className="text-warning">[your.email@example.com]</span>
+            <span className="text-warning">{legalConfig.publisherEmail}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">Phone:</span>{" "}
-            <span className="text-warning">[Your Phone Number]</span>
+            <span className="text-warning">{legalConfig.publisherPhone}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">
               Publication Director:
             </span>{" "}
-            <span className="text-warning">[Full Name of Director]</span>
+            <span className="text-warning">{legalConfig.publisherDirector}</span>
           </p>
         </div>
         <p className="text-xs text-muted italic">
@@ -58,19 +59,15 @@ export default function LegalNoticePage() {
         <div className="bg-secondary rounded-xl p-4 space-y-2 text-sm">
           <p>
             <span className="font-medium text-foreground">Host:</span>{" "}
-            <span className="text-warning">[Hosting Provider Name]</span>
+            <span className="text-warning">{legalConfig.hostName}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">Address:</span>{" "}
-            <span className="text-warning">
-              [Hosting Provider Postal Address]
-            </span>
+            <span className="text-warning">{legalConfig.hostAddress}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">Website:</span>{" "}
-            <span className="text-warning">
-              [https://hosting-provider.example.com]
-            </span>
+            <span className="text-warning">{legalConfig.hostWebsite}</span>
           </p>
         </div>
       </section>

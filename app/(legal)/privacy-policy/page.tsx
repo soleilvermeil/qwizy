@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { legalConfig } from "@/lib/legal";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - Open Duolingo",
@@ -14,7 +15,7 @@ export default function PrivacyPolicyPage() {
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Privacy Policy
         </h1>
-        <p className="text-muted">Last updated: February 2026</p>
+        <p className="text-muted">Last updated: {legalConfig.lastUpdated}</p>
       </header>
 
       {/* Introduction */}
@@ -40,15 +41,15 @@ export default function PrivacyPolicyPage() {
             <span className="font-medium text-foreground">
               Data Controller:
             </span>{" "}
-            <span className="text-warning">[Your Name or Organization]</span>
+            <span className="text-warning">{legalConfig.publisherName}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">Email:</span>{" "}
-            <span className="text-warning">[your.email@example.com]</span>
+            <span className="text-warning">{legalConfig.publisherEmail}</span>
           </p>
           <p>
             <span className="font-medium text-foreground">Address:</span>{" "}
-            <span className="text-warning">[Your Postal Address]</span>
+            <span className="text-warning">{legalConfig.publisherAddress}</span>
           </p>
         </div>
         <p className="text-xs text-muted italic">

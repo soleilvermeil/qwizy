@@ -41,6 +41,17 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
    ```env
    DATABASE_URL="file:./dev.db"
    JWT_SECRET="change-this-to-a-secure-random-string-in-production"
+
+   # Optional: Legal pages (Legal Notice, Privacy Policy). Fall back to placeholders if unset.
+   # LEGAL_PUBLISHER_NAME="Your Name or Organization"
+   # LEGAL_PUBLISHER_ADDRESS="Your Postal Address"
+   # LEGAL_PUBLISHER_EMAIL="your.email@example.com"
+   # LEGAL_PUBLISHER_PHONE="Your Phone Number"
+   # LEGAL_PUBLISHER_DIRECTOR="Full Name of Director"
+   # LEGAL_HOST_NAME="Hosting Provider Name"
+   # LEGAL_HOST_ADDRESS="Hosting Provider Postal Address"
+   # LEGAL_HOST_WEBSITE="https://hosting-provider.example.com"
+   # LEGAL_LAST_UPDATED="February 2026"
    ```
 
 3. **Generate the Prisma client:**
@@ -99,3 +110,12 @@ middleware.ts   # Auth and route protection middleware
 | `DATABASE_URL` | Database connection URL | `file:./dev.db` |
 | `JWT_SECRET` | Secret key for signing JWT tokens | Must be set for production |
 | `NODE_ENV` | Node environment (`development` / `production`) | `development` |
+| `LEGAL_PUBLISHER_NAME` | Publisher / data controller name. Used in Legal Notice & Privacy Policy. | `[Your Name or Organization]` |
+| `LEGAL_PUBLISHER_ADDRESS` | Publisher postal address | `[Your Postal Address]` |
+| `LEGAL_PUBLISHER_EMAIL` | Contact email | `[your.email@example.com]` |
+| `LEGAL_PUBLISHER_PHONE` | Contact phone (Legal Notice only) | `[Your Phone Number]` |
+| `LEGAL_PUBLISHER_DIRECTOR` | Publication director name (Legal Notice only) | `[Full Name of Director]` |
+| `LEGAL_HOST_NAME` | Hosting provider name (Legal Notice only) | `[Hosting Provider Name]` |
+| `LEGAL_HOST_ADDRESS` | Hosting provider address (Legal Notice only) | `[Hosting Provider Postal Address]` |
+| `LEGAL_HOST_WEBSITE` | Hosting provider website (Legal Notice only) | `[https://hosting-provider.example.com]` |
+| `LEGAL_LAST_UPDATED` | Last updated date shown on legal pages | `February 2026` |
