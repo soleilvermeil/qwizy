@@ -270,6 +270,8 @@ export default function EditDeckPage({ params }: PageProps) {
   };
 
   const handleDeleteQuestionType = async (questionTypeId: string) => {
+    if (!confirm("Are you sure you want to delete this question type?")) return;
+
     try {
       const response = await fetch(
         `/api/decks/${id}/question-types?questionTypeId=${questionTypeId}`,

@@ -45,6 +45,9 @@ export function DeckForm({
       setError("A deck must have at least 2 fields");
       return;
     }
+    if (fields[index].id && !confirm("Are you sure you want to remove this field? This will delete all card values for this field when you save.")) {
+      return;
+    }
     setFields(fields.filter((_, i) => i !== index));
   };
 
