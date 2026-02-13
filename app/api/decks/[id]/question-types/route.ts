@@ -140,6 +140,77 @@ export async function POST(
   }
 }
 
+// PUT /api/decks/[id]/question-types - Update a question type's TTS settings (admin only)
+export async function PUT(
+  request: NextRequest,
+  { params }: RouteParams
+) {
+  try {
+    const session = await getSession();
+
+    if (!session || !session.isAdmin) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+    const body = await request.json();
+    const {
+      questionTypeId,
+      showTtsLang,
+      showTtsFieldId,
+      showTtsStopAt,
+      askTtsLang,
+      askTtsFieldId,
+      askTtsStopAt,
+    } = body;
+
+    if (!questionTypeId) {
+      return NextResponse.json(
+        { error: "questionTypeId is required" },
+        { status: 400 }
+      );
+    }
+
+    // Verify question type belongs to this deck
+    const questionType = await prisma.deckQuestionType.findFirst({
+      where: {
+        id: questionTypeId,
+        deckId: id,
+      },
+    });
+
+    if (!questionType) {
+      return NextResponse.json(
+        { error: "Question type not found" },
+        { status: 404 }
+      );
+    }
+
+    const updated = await prisma.deckQuestionType.update({
+      where: { id: questionTypeId },
+      data: {
+        showTtsLang: showTtsLang || null,
+        showTtsFieldId: showTtsLang ? (showTtsFieldId || null) : null,
+        showTtsStopAt: showTtsLang ? (showTtsStopAt || null) : null,
+        askTtsLang: askTtsLang || null,
+        askTtsFieldId: askTtsLang ? (askTtsFieldId || null) : null,
+        askTtsStopAt: askTtsLang ? (askTtsStopAt || null) : null,
+      },
+    });
+
+    return NextResponse.json({ questionType: updated });
+  } catch (error) {
+    console.error("Error updating question type:", error);
+    return NextResponse.json(
+      { error: "Failed to update question type" },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/decks/[id]/question-types - Delete a question type (admin only)
 export async function DELETE(
   request: NextRequest,

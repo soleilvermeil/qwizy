@@ -90,6 +90,14 @@ export default function EditDeckPage({ params }: PageProps) {
   const [newAskTtsStopAt, setNewAskTtsStopAt] = useState("");
   const [newUseAsQuestion, setNewUseAsQuestion] = useState(true);
   const [newUseAsExplanation, setNewUseAsExplanation] = useState(false);
+  const [editingQuestionTypeId, setEditingQuestionTypeId] = useState<string | null>(null);
+  const [editShowTtsLang, setEditShowTtsLang] = useState("");
+  const [editShowTtsFieldId, setEditShowTtsFieldId] = useState("");
+  const [editShowTtsStopAt, setEditShowTtsStopAt] = useState("");
+  const [editAskTtsLang, setEditAskTtsLang] = useState("");
+  const [editAskTtsFieldId, setEditAskTtsFieldId] = useState("");
+  const [editAskTtsStopAt, setEditAskTtsStopAt] = useState("");
+  const [editQuestionTypeError, setEditQuestionTypeError] = useState("");
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -288,6 +296,49 @@ export default function EditDeckPage({ params }: PageProps) {
     }
   };
 
+  const startEditingQuestionType = (qt: QuestionType) => {
+    setEditingQuestionTypeId(qt.id);
+    setEditShowTtsLang(qt.showTtsLang || "");
+    setEditShowTtsFieldId(qt.showTtsFieldId || "");
+    setEditShowTtsStopAt(qt.showTtsStopAt || "");
+    setEditAskTtsLang(qt.askTtsLang || "");
+    setEditAskTtsFieldId(qt.askTtsFieldId || "");
+    setEditAskTtsStopAt(qt.askTtsStopAt || "");
+    setEditQuestionTypeError("");
+  };
+
+  const handleUpdateQuestionType = async () => {
+    if (!editingQuestionTypeId) return;
+
+    try {
+      const response = await fetch(`/api/decks/${id}/question-types`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionTypeId: editingQuestionTypeId,
+          showTtsLang: editShowTtsLang || undefined,
+          showTtsFieldId: editShowTtsFieldId || undefined,
+          showTtsStopAt: editShowTtsStopAt || undefined,
+          askTtsLang: editAskTtsLang || undefined,
+          askTtsFieldId: editAskTtsFieldId || undefined,
+          askTtsStopAt: editAskTtsStopAt || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setEditQuestionTypeError(data.error || "Failed to update question type");
+        return;
+      }
+
+      setEditingQuestionTypeId(null);
+      fetchDeck();
+    } catch (error) {
+      console.error("Error updating question type:", error);
+      setEditQuestionTypeError("Failed to update question type");
+    }
+  };
+
   const getFieldName = (fieldId: string) => {
     return deck?.fields.find((f) => f.id === fieldId)?.name || "Unknown";
   };
@@ -427,76 +478,209 @@ export default function EditDeckPage({ params }: PageProps) {
 
               {/* Existing question types */}
               {deck.questionTypes.map((qt) => (
-                <div
-                  key={qt.id}
-                  className="flex items-center justify-between px-3 py-2 bg-secondary/50 rounded-lg"
-                >
-                  <div className="flex items-center gap-2 text-sm flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium text-foreground">
-                        {getFieldName(qt.showFieldId)}
-                      </span>
-                      {qt.showTtsLang && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs" title={`TTS: ${getTtsLanguageLabel(qt.showTtsLang)} - ${getFieldName(qt.showTtsFieldId || qt.showFieldId)}${qt.showTtsStopAt ? ` (stop at "${qt.showTtsStopAt}")` : ""}`}>
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                          </svg>
-                          {qt.showTtsLang.split("-")[0]}
+                <div key={qt.id} className="bg-secondary/50 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2">
+                    <div className="flex items-center gap-2 text-sm flex-wrap">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-foreground">
+                          {getFieldName(qt.showFieldId)}
                         </span>
+                        {qt.showTtsLang && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs" title={`TTS: ${getTtsLanguageLabel(qt.showTtsLang)} - ${getFieldName(qt.showTtsFieldId || qt.showFieldId)}${qt.showTtsStopAt ? ` (stop at "${qt.showTtsStopAt}")` : ""}`}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            {qt.showTtsLang.split("-")[0]}
+                          </span>
+                        )}
+                      </div>
+                      <svg
+                        className="w-4 h-4 text-muted"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 7l5 5m0 0l-5 5m5-5H6"
+                        />
+                      </svg>
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium text-foreground">
+                          {getFieldName(qt.askFieldId)}
+                        </span>
+                        {qt.askTtsLang && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs" title={`TTS: ${getTtsLanguageLabel(qt.askTtsLang)} - ${getFieldName(qt.askTtsFieldId || qt.askFieldId)}${qt.askTtsStopAt ? ` (stop at "${qt.askTtsStopAt}")` : ""}`}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            </svg>
+                            {qt.askTtsLang.split("-")[0]}
+                          </span>
+                        )}
+                      </div>
+                      {qt.useAsQuestion && (
+                        <span className="px-1.5 py-0.5 bg-warning/10 text-warning rounded text-xs font-medium">Q</span>
+                      )}
+                      {qt.useAsExplanation && (
+                        <span className="px-1.5 py-0.5 bg-success/10 text-success rounded text-xs font-medium">E</span>
                       )}
                     </div>
-                    <svg
-                      className="w-4 h-4 text-muted"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
-                    <div className="flex items-center gap-1">
-                      <span className="font-medium text-foreground">
-                        {getFieldName(qt.askFieldId)}
-                      </span>
-                      {qt.askTtsLang && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-xs" title={`TTS: ${getTtsLanguageLabel(qt.askTtsLang)} - ${getFieldName(qt.askTtsFieldId || qt.askFieldId)}${qt.askTtsStopAt ? ` (stop at "${qt.askTtsStopAt}")` : ""}`}>
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                          </svg>
-                          {qt.askTtsLang.split("-")[0]}
-                        </span>
-                      )}
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditingQuestionType(qt)}
+                        disabled={editingQuestionTypeId === qt.id}
+                      >
+                        <svg
+                          className="w-4 h-4 text-muted-foreground"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteQuestionType(qt.id)}
+                      >
+                        <svg
+                          className="w-4 h-4 text-error"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </Button>
                     </div>
-                    {qt.useAsQuestion && (
-                      <span className="px-1.5 py-0.5 bg-warning/10 text-warning rounded text-xs font-medium">Q</span>
-                    )}
-                    {qt.useAsExplanation && (
-                      <span className="px-1.5 py-0.5 bg-success/10 text-success rounded text-xs font-medium">E</span>
-                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteQuestionType(qt.id)}
-                  >
-                    <svg
-                      className="w-4 h-4 text-error"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </Button>
+
+                  {/* Inline edit form for TTS settings */}
+                  {editingQuestionTypeId === qt.id && (
+                    <div className="border-t border-border px-3 py-3 space-y-4">
+                      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-start">
+                        {/* Show TTS column */}
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Show TTS</p>
+                          <Select
+                            label="Language"
+                            value={editShowTtsLang}
+                            onChange={(e) => {
+                              setEditShowTtsLang(e.target.value);
+                              if (!e.target.value) {
+                                setEditShowTtsFieldId("");
+                                setEditShowTtsStopAt("");
+                              }
+                            }}
+                            placeholder="None"
+                            options={TTS_LANGUAGES.map((l) => ({
+                              value: l.code,
+                              label: l.label,
+                            }))}
+                          />
+                          {editShowTtsLang && (
+                            <>
+                              <Select
+                                label="Read field"
+                                value={editShowTtsFieldId}
+                                onChange={(e) => setEditShowTtsFieldId(e.target.value)}
+                                placeholder="Select field..."
+                                options={deck.fields.map((f) => ({
+                                  value: f.id,
+                                  label: f.name,
+                                }))}
+                              />
+                              <Input
+                                label="Stop at"
+                                value={editShowTtsStopAt}
+                                onChange={(e) => setEditShowTtsStopAt(e.target.value)}
+                                placeholder="e.g. ,"
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        {/* Spacer */}
+                        <div className="flex items-center pt-6">
+                          <div className="w-5" />
+                        </div>
+
+                        {/* Ask TTS column */}
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Answer TTS</p>
+                          <Select
+                            label="Language"
+                            value={editAskTtsLang}
+                            onChange={(e) => {
+                              setEditAskTtsLang(e.target.value);
+                              if (!e.target.value) {
+                                setEditAskTtsFieldId("");
+                                setEditAskTtsStopAt("");
+                              }
+                            }}
+                            placeholder="None"
+                            options={TTS_LANGUAGES.map((l) => ({
+                              value: l.code,
+                              label: l.label,
+                            }))}
+                          />
+                          {editAskTtsLang && (
+                            <>
+                              <Select
+                                label="Read field"
+                                value={editAskTtsFieldId}
+                                onChange={(e) => setEditAskTtsFieldId(e.target.value)}
+                                placeholder="Select field..."
+                                options={deck.fields.map((f) => ({
+                                  value: f.id,
+                                  label: f.name,
+                                }))}
+                              />
+                              <Input
+                                label="Stop at"
+                                value={editAskTtsStopAt}
+                                onChange={(e) => setEditAskTtsStopAt(e.target.value)}
+                                placeholder="e.g. ,"
+                              />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      {editQuestionTypeError && (
+                        <p className="text-sm text-error">{editQuestionTypeError}</p>
+                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setEditingQuestionTypeId(null);
+                            setEditQuestionTypeError("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button size="sm" onClick={handleUpdateQuestionType}>
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
 
