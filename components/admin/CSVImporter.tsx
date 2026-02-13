@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Button, Select, Card, CardContent, Modal, ModalFooter } from "@/components/ui";
+import { Button, Select, Card, CardContent, Modal, ModalFooter, TokenFieldSelect } from "@/components/ui";
 import {
   parseCSV,
   detectSeparator,
@@ -42,7 +42,7 @@ export function CSVImporter({ fields, onImport, onCancel }: CSVImporterProps) {
   const [hasHeaders, setHasHeaders] = useState(true);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
-  const [tagColumns, setTagColumns] = useState<Set<number>>(new Set());
+  const [tagColumns, setTagColumns] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [pendingCards, setPendingCards] = useState<CardData[] | null>(null);
@@ -174,8 +174,8 @@ export function CSVImporter({ fields, onImport, onCancel }: CSVImporterProps) {
         }));
 
       const tagsArray: string[] = [];
-      tagColumns.forEach((colIndex) => {
-        const tagValue = row[colIndex]?.trim();
+      tagColumns.forEach((colIndexStr) => {
+        const tagValue = row[parseInt(colIndexStr)]?.trim();
         if (tagValue) {
           tagValue.split(",").forEach((t) => {
             const trimmed = t.trim();
@@ -420,29 +420,15 @@ export function CSVImporter({ fields, onImport, onCancel }: CSVImporterProps) {
                 <p className="text-sm text-muted-foreground mb-4">
                   Select columns to use as tags. Tags help organize and filter cards.
                 </p>
-                <div className="space-y-2">
-                  {parseResult.headers.map((header, index) => (
-                    <label key={index} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={tagColumns.has(index)}
-                        onChange={(e) => {
-                          const newTagColumns = new Set(tagColumns);
-                          if (e.target.checked) {
-                            newTagColumns.add(index);
-                          } else {
-                            newTagColumns.delete(index);
-                          }
-                          setTagColumns(newTagColumns);
-                        }}
-                        className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                      />
-                      <span className="text-foreground">
-                        {getColumnLabel(header, index)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <TokenFieldSelect
+                  placeholder="Add column..."
+                  options={parseResult.headers.map((header, index) => ({
+                    value: index.toString(),
+                    label: getColumnLabel(header, index),
+                  }))}
+                  value={tagColumns}
+                  onChange={setTagColumns}
+                />
               </CardContent>
             </Card>
           )}
