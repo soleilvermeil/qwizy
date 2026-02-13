@@ -12,6 +12,7 @@ import {
   Modal,
   Input,
   Select,
+  TokenFieldSelect,
 } from "@/components/ui";
 import { DeckForm } from "@/components/admin";
 import { TTS_LANGUAGES, getTtsLanguageLabel } from "@/lib/tts-languages";
@@ -50,6 +51,8 @@ interface QuestionType {
   askTtsLang: string | null;
   askTtsFieldId: string | null;
   askTtsStopAt: string | null;
+  showHintFieldIds: string | null;
+  askHintFieldIds: string | null;
 }
 
 interface Deck {
@@ -90,6 +93,8 @@ export default function EditDeckPage({ params }: PageProps) {
   const [newAskTtsStopAt, setNewAskTtsStopAt] = useState("");
   const [newUseAsQuestion, setNewUseAsQuestion] = useState(true);
   const [newUseAsExplanation, setNewUseAsExplanation] = useState(false);
+  const [newShowHintFieldIds, setNewShowHintFieldIds] = useState<string[]>([]);
+  const [newAskHintFieldIds, setNewAskHintFieldIds] = useState<string[]>([]);
   const [editingQuestionTypeId, setEditingQuestionTypeId] = useState<string | null>(null);
   const [editShowTtsLang, setEditShowTtsLang] = useState("");
   const [editShowTtsFieldId, setEditShowTtsFieldId] = useState("");
@@ -97,6 +102,8 @@ export default function EditDeckPage({ params }: PageProps) {
   const [editAskTtsLang, setEditAskTtsLang] = useState("");
   const [editAskTtsFieldId, setEditAskTtsFieldId] = useState("");
   const [editAskTtsStopAt, setEditAskTtsStopAt] = useState("");
+  const [editShowHintFieldIds, setEditShowHintFieldIds] = useState<string[]>([]);
+  const [editAskHintFieldIds, setEditAskHintFieldIds] = useState<string[]>([]);
   const [editQuestionTypeError, setEditQuestionTypeError] = useState("");
 
   const fetchDeck = useCallback(async () => {
@@ -250,6 +257,8 @@ export default function EditDeckPage({ params }: PageProps) {
           askTtsLang: newAskTtsLang || undefined,
           askTtsFieldId: newAskTtsFieldId || undefined,
           askTtsStopAt: newAskTtsStopAt || undefined,
+          showHintFieldIds: newShowHintFieldIds.length > 0 ? newShowHintFieldIds : undefined,
+          askHintFieldIds: newAskHintFieldIds.length > 0 ? newAskHintFieldIds : undefined,
         }),
       });
 
@@ -270,6 +279,8 @@ export default function EditDeckPage({ params }: PageProps) {
       setNewAskTtsStopAt("");
       setNewUseAsQuestion(true);
       setNewUseAsExplanation(false);
+      setNewShowHintFieldIds([]);
+      setNewAskHintFieldIds([]);
       fetchDeck();
     } catch (error) {
       console.error("Error adding question type:", error);
@@ -304,6 +315,8 @@ export default function EditDeckPage({ params }: PageProps) {
     setEditAskTtsLang(qt.askTtsLang || "");
     setEditAskTtsFieldId(qt.askTtsFieldId || "");
     setEditAskTtsStopAt(qt.askTtsStopAt || "");
+    setEditShowHintFieldIds(qt.showHintFieldIds ? qt.showHintFieldIds.split(",").filter(Boolean) : []);
+    setEditAskHintFieldIds(qt.askHintFieldIds ? qt.askHintFieldIds.split(",").filter(Boolean) : []);
     setEditQuestionTypeError("");
   };
 
@@ -322,6 +335,8 @@ export default function EditDeckPage({ params }: PageProps) {
           askTtsLang: editAskTtsLang || undefined,
           askTtsFieldId: editAskTtsFieldId || undefined,
           askTtsStopAt: editAskTtsStopAt || undefined,
+          showHintFieldIds: editShowHintFieldIds.length > 0 ? editShowHintFieldIds : [],
+          askHintFieldIds: editAskHintFieldIds.length > 0 ? editAskHintFieldIds : [],
         }),
       });
 
@@ -442,6 +457,8 @@ export default function EditDeckPage({ params }: PageProps) {
                   setNewAskTtsStopAt("");
                   setNewUseAsQuestion(true);
                   setNewUseAsExplanation(false);
+                  setNewShowHintFieldIds([]);
+                  setNewAskHintFieldIds([]);
                 }}
                 disabled={deck.fields.length < 2}
               >
@@ -525,6 +542,14 @@ export default function EditDeckPage({ params }: PageProps) {
                       )}
                       {qt.useAsExplanation && (
                         <span className="px-1.5 py-0.5 bg-success/10 text-success rounded text-xs font-medium">E</span>
+                      )}
+                      {(qt.showHintFieldIds || qt.askHintFieldIds) && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-secondary text-muted-foreground rounded text-xs" title={`Hints: ${[qt.showHintFieldIds, qt.askHintFieldIds].filter(Boolean).join(", ")}`}>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          hints
+                        </span>
                       )}
                     </div>
                     <div className="flex gap-1">
@@ -659,6 +684,28 @@ export default function EditDeckPage({ params }: PageProps) {
                               />
                             </>
                           )}
+                        </div>
+                      </div>
+                      {/* Hints */}
+                      <div className="border-t border-border pt-3">
+                        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-start">
+                          <TokenFieldSelect
+                            label="Show hints"
+                            placeholder="Add field..."
+                            options={deck.fields.map((f) => ({ value: f.id, label: f.name }))}
+                            value={editShowHintFieldIds}
+                            onChange={setEditShowHintFieldIds}
+                          />
+                          <div className="flex items-center pt-6">
+                            <div className="w-5" />
+                          </div>
+                          <TokenFieldSelect
+                            label="Answer hints"
+                            placeholder="Add field..."
+                            options={deck.fields.map((f) => ({ value: f.id, label: f.name }))}
+                            value={editAskHintFieldIds}
+                            onChange={setEditAskHintFieldIds}
+                          />
                         </div>
                       </div>
                       {editQuestionTypeError && (
@@ -809,6 +856,28 @@ export default function EditDeckPage({ params }: PageProps) {
                           </>
                         )}
                       </div>
+                    </div>
+                  </div>
+                  {/* Hints */}
+                  <div className="border-t border-border pt-3">
+                    <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-start">
+                      <TokenFieldSelect
+                        label="Show hints (optional)"
+                        placeholder="Add field..."
+                        options={deck.fields.map((f) => ({ value: f.id, label: f.name }))}
+                        value={newShowHintFieldIds}
+                        onChange={setNewShowHintFieldIds}
+                      />
+                      <div className="flex items-center pt-6">
+                        <div className="w-5" />
+                      </div>
+                      <TokenFieldSelect
+                        label="Answer hints (optional)"
+                        placeholder="Add field..."
+                        options={deck.fields.map((f) => ({ value: f.id, label: f.name }))}
+                        value={newAskHintFieldIds}
+                        onChange={setNewAskHintFieldIds}
+                      />
                     </div>
                   </div>
                   {/* Use as question / explanation checkboxes */}

@@ -4,3 +4,4 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { Modal, ModalFooter } from "./Modal";
 export { Select } from "./Select";
 export { Textarea } from "./Textarea";
+export { TokenFieldSelect } from "./TokenFieldSelect";

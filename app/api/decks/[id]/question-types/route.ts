@@ -57,6 +57,8 @@ export async function POST(
       askTtsLang,
       askTtsFieldId,
       askTtsStopAt,
+      showHintFieldIds,
+      askHintFieldIds,
     } = body;
 
     if (!showFieldId || !askFieldId) {
@@ -73,17 +75,26 @@ export async function POST(
       );
     }
 
-    // Verify the fields belong to this deck
+    // Collect all field IDs that need validation (primary + hints)
+    const allFieldIds = new Set([showFieldId, askFieldId]);
+    if (Array.isArray(showHintFieldIds)) {
+      showHintFieldIds.forEach((fid: string) => allFieldIds.add(fid));
+    }
+    if (Array.isArray(askHintFieldIds)) {
+      askHintFieldIds.forEach((fid: string) => allFieldIds.add(fid));
+    }
+
+    // Verify all referenced fields belong to this deck
     const fields = await prisma.field.findMany({
       where: {
         deckId: id,
-        id: { in: [showFieldId, askFieldId] },
+        id: { in: Array.from(allFieldIds) },
       },
     });
 
-    if (fields.length !== 2) {
+    if (fields.length !== allFieldIds.size) {
       return NextResponse.json(
-        { error: "One or both fields do not belong to this deck" },
+        { error: "One or more fields do not belong to this deck" },
         { status: 400 }
       );
     }
@@ -127,6 +138,10 @@ export async function POST(
         askTtsLang: askTtsLang || null,
         askTtsFieldId: askTtsLang ? (askTtsFieldId || null) : null,
         askTtsStopAt: askTtsLang ? (askTtsStopAt || null) : null,
+        showHintFieldIds: Array.isArray(showHintFieldIds) && showHintFieldIds.length > 0
+          ? showHintFieldIds.join(",") : null,
+        askHintFieldIds: Array.isArray(askHintFieldIds) && askHintFieldIds.length > 0
+          ? askHintFieldIds.join(",") : null,
       },
     });
 
@@ -165,6 +180,8 @@ export async function PUT(
       askTtsLang,
       askTtsFieldId,
       askTtsStopAt,
+      showHintFieldIds,
+      askHintFieldIds,
     } = body;
 
     if (!questionTypeId) {
@@ -189,6 +206,30 @@ export async function PUT(
       );
     }
 
+    // Validate hint field IDs belong to this deck
+    const hintFieldIdsToValidate: string[] = [];
+    if (Array.isArray(showHintFieldIds)) {
+      hintFieldIdsToValidate.push(...showHintFieldIds);
+    }
+    if (Array.isArray(askHintFieldIds)) {
+      hintFieldIdsToValidate.push(...askHintFieldIds);
+    }
+    if (hintFieldIdsToValidate.length > 0) {
+      const uniqueIds = new Set(hintFieldIdsToValidate);
+      const validFields = await prisma.field.findMany({
+        where: {
+          deckId: id,
+          id: { in: Array.from(uniqueIds) },
+        },
+      });
+      if (validFields.length !== uniqueIds.size) {
+        return NextResponse.json(
+          { error: "One or more hint fields do not belong to this deck" },
+          { status: 400 }
+        );
+      }
+    }
+
     const updated = await prisma.deckQuestionType.update({
       where: { id: questionTypeId },
       data: {
@@ -198,6 +239,10 @@ export async function PUT(
         askTtsLang: askTtsLang || null,
         askTtsFieldId: askTtsLang ? (askTtsFieldId || null) : null,
         askTtsStopAt: askTtsLang ? (askTtsStopAt || null) : null,
+        showHintFieldIds: Array.isArray(showHintFieldIds) && showHintFieldIds.length > 0
+          ? showHintFieldIds.join(",") : null,
+        askHintFieldIds: Array.isArray(askHintFieldIds) && askHintFieldIds.length > 0
+          ? askHintFieldIds.join(",") : null,
       },
     });
 

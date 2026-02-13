@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, Button } from "@/components/ui";
-import type { TtsPlayback } from "./FlashCard";
+import type { TtsPlayback, HintValue } from "./FlashCard";
 
 interface TeachCardProps {
   front: string;
@@ -12,6 +12,8 @@ interface TeachCardProps {
   onContinue: () => void;
   showTts?: TtsPlayback | null;
   askTts?: TtsPlayback | null;
+  showHints?: HintValue[];
+  askHints?: HintValue[];
 }
 
 function speak(tts: TtsPlayback) {
@@ -37,6 +39,8 @@ export function TeachCard({
   onContinue,
   showTts,
   askTts,
+  showHints,
+  askHints,
 }: TeachCardProps) {
   const cardIdentityRef = useRef<string>("");
 
@@ -112,6 +116,15 @@ export function TeachCard({
                 </button>
               )}
             </div>
+            {showHints && showHints.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {showHints.map((hint, i) => (
+                  <p key={i} className="text-sm text-muted">
+                    {hint.label}: {hint.value}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Divider */}
@@ -144,6 +157,15 @@ export function TeachCard({
                 </button>
               )}
             </div>
+            {askHints && askHints.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {askHints.map((hint, i) => (
+                  <p key={i} className="text-sm text-muted">
+                    {hint.label}: {hint.value}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Continue button */}

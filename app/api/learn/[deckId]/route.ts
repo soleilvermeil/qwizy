@@ -13,6 +13,11 @@ interface TtsConfig {
   stopAt: string | null;
 }
 
+interface HintConfig {
+  fieldId: string;
+  fieldName: string;
+}
+
 interface QuestionItem {
   cardId: string;
   showFieldId: string;
@@ -32,6 +37,8 @@ interface QuestionItem {
   } | null;
   showTts: TtsConfig | null;
   askTts: TtsConfig | null;
+  showHints: HintConfig[];
+  askHints: HintConfig[];
 }
 
 function shuffle<T>(array: T[]): T[] {
@@ -84,11 +91,25 @@ export async function GET(
     }
 
     // Use configured question types, or fall back to first→second field
+    // Build a field name lookup for resolving hints
+    const fieldNameMap = new Map(deck.fields.map((f) => [f.id, f.name]));
+
+    function parseHintFieldIds(csv: string | null): HintConfig[] {
+      if (!csv) return [];
+      return csv
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+        .map((id) => ({ fieldId: id, fieldName: fieldNameMap.get(id) || id }));
+    }
+
     interface FieldPair {
       showFieldId: string;
       askFieldId: string;
       showTts: TtsConfig | null;
       askTts: TtsConfig | null;
+      showHints: HintConfig[];
+      askHints: HintConfig[];
     }
 
     let questionPairs: FieldPair[] = [];
@@ -105,6 +126,8 @@ export async function GET(
           askTts: qt.askTtsLang && qt.askTtsFieldId
             ? { lang: qt.askTtsLang, fieldId: qt.askTtsFieldId, stopAt: qt.askTtsStopAt }
             : null,
+          showHints: parseHintFieldIds(qt.showHintFieldIds),
+          askHints: parseHintFieldIds(qt.askHintFieldIds),
         };
         if (qt.useAsQuestion) questionPairs.push(pair);
         if (qt.useAsExplanation) explanationPairs.push(pair);
@@ -122,6 +145,8 @@ export async function GET(
           askFieldId: deck.fields[1].id,
           showTts: null,
           askTts: null,
+          showHints: [],
+          askHints: [],
         },
       ];
     }
@@ -209,6 +234,8 @@ export async function GET(
               },
               showTts: pair.showTts,
               askTts: pair.askTts,
+              showHints: pair.showHints,
+              askHints: pair.askHints,
             });
             reviewCardIds.add(card.id);
           }
@@ -250,6 +277,8 @@ export async function GET(
           progress: null,
           showTts: pair.showTts,
           askTts: pair.askTts,
+          showHints: pair.showHints,
+          askHints: pair.askHints,
         });
       }
     }
@@ -263,6 +292,8 @@ export async function GET(
       values: { id: string; fieldId: string; value: string }[];
       showTts: TtsConfig | null;
       askTts: TtsConfig | null;
+      showHints: HintConfig[];
+      askHints: HintConfig[];
     }
 
     const newExplanations: ExplanationItem[] = [];
@@ -280,6 +311,8 @@ export async function GET(
           values: card.values,
           showTts: pair.showTts,
           askTts: pair.askTts,
+          showHints: pair.showHints,
+          askHints: pair.askHints,
         });
       }
     }
@@ -316,6 +349,8 @@ export async function GET(
         : null,
       showTts: q.showTts,
       askTts: q.askTts,
+      showHints: q.showHints,
+      askHints: q.askHints,
     }));
 
     const sessionExplanations = isDueOnly ? [] : newExplanations;
@@ -326,6 +361,8 @@ export async function GET(
       values: e.values,
       showTts: e.showTts,
       askTts: e.askTts,
+      showHints: e.showHints,
+      askHints: e.askHints,
     }));
 
     // Are there more unseen cards beyond this session?

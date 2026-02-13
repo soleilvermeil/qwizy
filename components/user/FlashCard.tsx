@@ -15,6 +15,11 @@ export interface TtsPlayback {
   text: string;
 }
 
+export interface HintValue {
+  label: string;
+  value: string;
+}
+
 interface FlashCardProps {
   front: string;
   back: string;
@@ -25,6 +30,8 @@ interface FlashCardProps {
   intervalPreviews?: IntervalPreviews;
   showTts?: TtsPlayback | null;
   askTts?: TtsPlayback | null;
+  showHints?: HintValue[];
+  askHints?: HintValue[];
 }
 
 function speak(tts: TtsPlayback) {
@@ -52,6 +59,8 @@ export function FlashCard({
   intervalPreviews,
   showTts,
   askTts,
+  showHints,
+  askHints,
 }: FlashCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   // Track the card identity so we can detect card changes
@@ -161,6 +170,15 @@ export function FlashCard({
                 </button>
               )}
             </div>
+            {showHints && showHints.length > 0 && (
+              <div className="mt-2 space-y-0.5">
+                {showHints.map((hint, i) => (
+                  <p key={i} className="text-sm text-muted">
+                    {hint.label}: {hint.value}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Divider */}
@@ -200,6 +218,15 @@ export function FlashCard({
                   </button>
                 )}
               </div>
+              {askHints && askHints.length > 0 && (
+                <div className="mt-2 space-y-0.5">
+                  {askHints.map((hint, i) => (
+                    <p key={i} className="text-sm text-muted">
+                      {hint.label}: {hint.value}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

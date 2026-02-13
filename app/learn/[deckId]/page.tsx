@@ -27,6 +27,16 @@ interface TtsConfig {
   stopAt: string | null;
 }
 
+interface HintConfig {
+  fieldId: string;
+  fieldName: string;
+}
+
+interface HintValue {
+  label: string;
+  value: string;
+}
+
 interface QuestionItem {
   cardId: string;
   showFieldId: string;
@@ -46,6 +56,8 @@ interface QuestionItem {
   } | null;
   showTts: TtsConfig | null;
   askTts: TtsConfig | null;
+  showHints?: HintConfig[];
+  askHints?: HintConfig[];
 }
 
 interface ExplanationItem {
@@ -55,6 +67,8 @@ interface ExplanationItem {
   values: CardValue[];
   showTts: TtsConfig | null;
   askTts: TtsConfig | null;
+  showHints?: HintConfig[];
+  askHints?: HintConfig[];
 }
 
 type SessionItem =
@@ -300,6 +314,19 @@ export default function LearnPage({ params }: PageProps) {
     return { lang: ttsConfig.lang, text };
   }
 
+  function resolveHints(
+    hints: HintConfig[] | undefined,
+    values: CardValue[]
+  ): HintValue[] {
+    if (!hints || hints.length === 0) return [];
+    return hints
+      .map((hint) => {
+        const val = values.find((v) => v.fieldId === hint.fieldId)?.value || "";
+        return val ? { label: hint.fieldName, value: val } : null;
+      })
+      .filter((h): h is HintValue => h !== null);
+  }
+
   if (isLoading || !deck) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -410,6 +437,8 @@ export default function LearnPage({ params }: PageProps) {
     itemData.values.find((v) => v.fieldId === itemData.askFieldId)?.value || "";
   const showTtsPlayback = resolveTts(itemData.showTts, itemData.values);
   const askTtsPlayback = resolveTts(itemData.askTts, itemData.values);
+  const showHintsResolved = resolveHints(itemData.showHints, itemData.values);
+  const askHintsResolved = resolveHints(itemData.askHints, itemData.values);
 
   return (
     <div className="min-h-screen py-8">
@@ -470,6 +499,8 @@ export default function LearnPage({ params }: PageProps) {
             onContinue={handleContinueExplanation}
             showTts={showTtsPlayback}
             askTts={askTtsPlayback}
+            showHints={showHintsResolved}
+            askHints={askHintsResolved}
           />
         ) : (
           <FlashCard
@@ -482,6 +513,8 @@ export default function LearnPage({ params }: PageProps) {
             intervalPreviews={intervalPreviews}
             showTts={showTtsPlayback}
             askTts={askTtsPlayback}
+            showHints={showHintsResolved}
+            askHints={askHintsResolved}
           />
         )}
       </div>

@@ -44,6 +44,8 @@ model DeckQuestionType {
   askTtsLang       String?
   askTtsFieldId    String?
   askTtsStopAt     String?
+  showHintFieldIds String?
+  askHintFieldIds  String?
   deck             Deck    @relation(fields: [deckId], references: [id], onDelete: Cascade)
 
   @@unique([deckId, showFieldId, askFieldId])
