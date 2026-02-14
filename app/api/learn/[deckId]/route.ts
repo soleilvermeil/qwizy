@@ -204,6 +204,7 @@ export async function GET(
 
     for (const card of allCards) {
       let hasAnyProgress = false;
+      const missingPairs: FieldPair[] = [];
 
       for (const pair of questionPairs) {
         const key = `${card.id}:${pair.showFieldId}:${pair.askFieldId}`;
@@ -239,11 +240,31 @@ export async function GET(
             });
             reviewCardIds.add(card.id);
           }
+        } else {
+          missingPairs.push(pair);
         }
       }
 
       if (!hasAnyProgress) {
         newCardIds.push(card.id);
+      } else if (missingPairs.length > 0) {
+        // Card has progress for some question types but not all (e.g. user
+        // quit a session early, or a new question type was added to the deck).
+        // Treat the missing ones as due questions with no prior progress so
+        // they are introduced without counting against the daily new-card limit.
+        for (const pair of missingPairs) {
+          dueQuestions.push({
+            cardId: card.id,
+            showFieldId: pair.showFieldId,
+            askFieldId: pair.askFieldId,
+            values: card.values,
+            progress: null,
+            showTts: pair.showTts,
+            askTts: pair.askTts,
+            showHints: pair.showHints,
+            askHints: pair.askHints,
+          });
+        }
       }
     }
 
