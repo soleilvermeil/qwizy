@@ -119,20 +119,24 @@ export function DeckSelector({ decks }: DeckSelectorProps) {
                         }}
                       />
                     </div>
-                    {(deck.progress.dueCards > 0 || deck.progress.newCards > 0) && (
-                      <div className="flex gap-3 text-xs">
-                        {deck.progress.dueCards > 0 && (
-                          <span className="text-warning">
-                            {deck.progress.dueCards} due
-                          </span>
-                        )}
-                        {deck.progress.newCards > 0 && (
-                          <span className="text-primary">
-                            {deck.progress.newCards} new
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    <div className="flex gap-3 text-xs">
+                      {deck.progress.dueCards > 0 || deck.progress.newCards > 0 ? (
+                        <>
+                          {deck.progress.dueCards > 0 && (
+                            <span className="text-warning">
+                              {deck.progress.dueCards} due
+                            </span>
+                          )}
+                          {deck.progress.newCards > 0 && (
+                            <span className="text-primary">
+                              {deck.progress.newCards} new
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-success">You&apos;re up to date!</span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
