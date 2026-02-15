@@ -127,6 +127,10 @@ export default function PrivacyPolicyPage() {
             field)
           </li>
           <li>No IP address logging beyond standard server access logs</li>
+          <li>
+            No text or learning content is sent to third parties &mdash;
+            text-to-speech processing is performed entirely in your browser
+          </li>
         </ul>
       </section>
 
@@ -177,6 +181,70 @@ export default function PrivacyPolicyPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* Client-Side Storage */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-foreground">
+          Client-Side Storage
+        </h2>
+        <p className="text-muted-foreground leading-relaxed">
+          In addition to the session cookie described below, the application may
+          store the following data locally in your browser. This data never
+          leaves your device and is not sent to our servers.
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <li>
+            <span className="font-medium">TTS engine preference</span> &mdash;
+            your choice of text-to-speech engine is saved in your
+            browser&apos;s local storage
+          </li>
+          <li>
+            <span className="font-medium">AI voice models</span> &mdash; if
+            you enable the high-quality voice option (Piper), AI voice models
+            (~15&ndash;60&nbsp;MB each) are downloaded on demand and cached in
+            your browser&apos;s Origin Private File System (OPFS). You can
+            clear these cached models at any time from the{" "}
+            <Link
+              href="/settings"
+              className="text-primary hover:text-primary-hover underline"
+            >
+              Settings page
+            </Link>
+          </li>
+        </ul>
+      </section>
+
+      {/* Third-Party Connections */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-foreground">
+          Third-Party Connections
+        </h2>
+        <p className="text-muted-foreground leading-relaxed">
+          When the high-quality voice option (Piper) is enabled, your browser
+          downloads AI voice model files directly from the following third-party
+          services. No personal content (such as text you are learning) is sent
+          to these services, but your IP address may be visible to them as part
+          of the download request.
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <li>
+            <span className="font-medium">HuggingFace</span>{" "}
+            (huggingface.co) &mdash; hosts the voice model files
+          </li>
+          <li>
+            <span className="font-medium">jsDelivr</span>{" "}
+            (cdn.jsdelivr.net) &mdash; hosts the WebAssembly phonemizer
+            runtime
+          </li>
+        </ul>
+        <p className="text-muted-foreground leading-relaxed">
+          These connections only occur when Piper voices are used for the first
+          time for a given language. Once a model is cached locally, no further
+          third-party requests are made for that language. If you use the
+          &quot;Browser default&quot; voice option, no third-party connections
+          are made.
+        </p>
       </section>
 
       {/* Cookies */}
