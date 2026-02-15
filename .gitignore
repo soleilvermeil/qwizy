@@ -43,3 +43,6 @@ next-env.d.ts
 /app/generated/prisma
 *.db
 *.bat
+
+# onnxruntime-web WASM files (copied by postinstall script)
+/public/ort-wasm/

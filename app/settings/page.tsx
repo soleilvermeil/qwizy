@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Button,
   Input,
@@ -12,6 +12,8 @@ import {
   Modal,
   ModalFooter,
 } from "@/components/ui";
+import { getTtsEngine, setTtsEngine } from "@/lib/tts";
+import { getPiperSupportedLabels } from "@/lib/tts-languages";
 
 interface User {
   id: string;
@@ -36,6 +38,11 @@ export default function SettingsPage() {
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
+  // TTS / Piper state
+  const [ttsEngine, setTtsEngineState] = useState<"browser" | "piper">("browser");
+  const [cachedVoiceCount, setCachedVoiceCount] = useState(0);
+  const [isClearing, setIsClearing] = useState(false);
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -52,6 +59,33 @@ export default function SettingsPage() {
     };
 
     fetchUser();
+  }, []);
+
+  // Sync TTS engine preference and cached voice count from client-side state
+  useEffect(() => {
+    setTtsEngineState(getTtsEngine());
+    import("@/lib/tts-piper")
+      .then(({ getPiperStoredVoices }) => getPiperStoredVoices())
+      .then((voices) => setCachedVoiceCount(voices.length))
+      .catch(() => setCachedVoiceCount(0));
+  }, []);
+
+  const handleSelectEngine = useCallback((engine: "browser" | "piper") => {
+    setTtsEngine(engine);
+    setTtsEngineState(engine);
+  }, []);
+
+  const handleClearPiperCache = useCallback(async () => {
+    setIsClearing(true);
+    try {
+      const { clearPiperVoices } = await import("@/lib/tts-piper");
+      await clearPiperVoices();
+      setCachedVoiceCount(0);
+    } catch {
+      // ignore clear errors
+    } finally {
+      setIsClearing(false);
+    }
   }, []);
 
   const handleSaveCardsPerDay = async (e: React.FormEvent) => {
@@ -261,6 +295,98 @@ export default function SettingsPage() {
                 Save Changes
               </Button>
             </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Voice Quality - only for non-admin users */}
+      {!user?.isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Voice Quality</CardTitle>
+            <CardDescription>
+              Choose the text-to-speech engine for pronunciation playback
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Engine selection */}
+              <div className="space-y-2">
+                <label className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                  <input
+                    type="radio"
+                    name="tts-engine"
+                    value="browser"
+                    checked={ttsEngine === "browser"}
+                    onChange={() => handleSelectEngine("browser")}
+                    className="mt-0.5 accent-[var(--color-primary)]"
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">Browser default</p>
+                    <p className="text-sm text-muted">
+                      Uses your operating system&apos;s built-in voices. No download required. Supports all languages.
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-3 rounded-lg border border-border cursor-pointer hover:bg-muted/30 transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                  <input
+                    type="radio"
+                    name="tts-engine"
+                    value="piper"
+                    checked={ttsEngine === "piper"}
+                    onChange={() => handleSelectEngine("piper")}
+                    className="mt-0.5 accent-[var(--color-primary)]"
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">High quality (Piper)</p>
+                    <p className="text-sm text-muted">
+                      Natural-sounding AI voices downloaded on demand per language (~15-60 MB each). Cached locally for future use.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Piper details panel (shown when piper is selected) */}
+              {ttsEngine === "piper" && (
+                <div className="rounded-lg border border-border p-4 space-y-4">
+                  {/* Cache info & clear button */}
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Voice models are automatically downloaded the first time you hear a language. They are cached in your browser so subsequent plays are instant.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearPiperCache}
+                        isLoading={isClearing}
+                      >
+                        Clear cached voices
+                      </Button>
+                      <span className="text-xs text-muted">
+                        {cachedVoiceCount === 0
+                          ? "No voices cached yet"
+                          : `${cachedVoiceCount} voice${cachedVoiceCount === 1 ? "" : "s"} cached`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Supported languages info */}
+                  <div className="border-t border-border pt-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                      Supported languages
+                    </p>
+                    <p className="text-sm text-muted">
+                      {getPiperSupportedLabels().join(", ")}
+                    </p>
+                    <p className="text-xs text-muted mt-2">
+                      Other languages will automatically use your browser&apos;s built-in voice.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

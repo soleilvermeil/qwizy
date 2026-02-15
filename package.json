@@ -9,18 +9,21 @@
     "lint": "eslint",
     "db:migrate": "npx prisma migrate dev",
     "db:seed": "npx prisma db seed",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "postinstall": "node scripts/copy-onnx-wasm.js"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.8.1",
+    "@mintplex-labs/piper-tts-web": "^1.0.4",
     "@prisma/adapter-libsql": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.1.3",
     "next": "16.1.6",
+    "onnxruntime-web": "^1.24.1",
     "prisma": "^7.3.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

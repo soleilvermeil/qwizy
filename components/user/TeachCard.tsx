@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, Button } from "@/components/ui";
 import type { TtsPlayback, HintValue } from "./FlashCard";
+import { speak, cancelSpeech } from "@/lib/tts";
 
 interface TeachCardProps {
   front: string;
@@ -14,21 +15,6 @@ interface TeachCardProps {
   askTts?: TtsPlayback | null;
   showHints?: HintValue[];
   askHints?: HintValue[];
-}
-
-function speak(tts: TtsPlayback) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(tts.text);
-  utterance.lang = tts.lang;
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
-}
-
-function cancelSpeech() {
-  if (typeof window !== "undefined" && window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
 }
 
 export function TeachCard({

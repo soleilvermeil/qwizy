@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, CardContent, Button } from "@/components/ui";
+import { speak, cancelSpeech } from "@/lib/tts";
 
 interface IntervalPreviews {
   failed: string;
@@ -32,21 +33,6 @@ interface FlashCardProps {
   askTts?: TtsPlayback | null;
   showHints?: HintValue[];
   askHints?: HintValue[];
-}
-
-function speak(tts: TtsPlayback) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(tts.text);
-  utterance.lang = tts.lang;
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
-}
-
-function cancelSpeech() {
-  if (typeof window !== "undefined" && window.speechSynthesis) {
-    window.speechSynthesis.cancel();
-  }
 }
 
 export function FlashCard({
