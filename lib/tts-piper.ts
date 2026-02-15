@@ -45,6 +45,15 @@ export async function piperSpeak(text: string, lang: string): Promise<Blob> {
   }
 
   const { TtsSession } = await import("@mintplex-labs/piper-tts-web");
+
+  // TtsSession is an internal singleton: once created, `new TtsSession()`
+  // returns the *same* instance and only updates the voiceId property — it
+  // does NOT reload the ONNX model.  We must reset the singleton whenever
+  // the requested voice differs from the one the session was built with.
+  if (TtsSession._instance && TtsSession._instance.voiceId !== voiceId) {
+    TtsSession._instance = null;
+  }
+
   const session = new TtsSession({
     voiceId,
     wasmPaths: {
