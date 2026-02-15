@@ -7,7 +7,7 @@
  * - Medium stability: 33% <= score < 67%
  * - High stability: score >= 67%
  *
- * Score: f(stability) = min(1, stability / 365)
+ * Score: f(stability) = min(1, log(stability) / log(1000))
  */
 
 export type MasteryLevel = "not_seen" | "low" | "medium" | "high";
@@ -48,12 +48,12 @@ export const MASTERY_LEVELS: Record<MasteryLevel, MasteryInfo> = {
 
 /**
  * Compute the stability score for a given stability.
- * f(stability) = min(1, stability / 365)
+ * f(stability) = min(1, log(stability) / log(1000))
  * Returns a value between 0 and 1.
  */
 export function getMasteryScore(stability: number): number {
-  if (stability <= 0) return 0;
-  return Math.min(1, stability / 365);
+  if (stability <= 1) return 0;
+  return Math.min(1, Math.log(stability) / Math.log(1000));
 }
 
 /**
