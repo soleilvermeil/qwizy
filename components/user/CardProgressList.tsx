@@ -55,36 +55,34 @@ const STATE_LABELS: Record<number, string> = {
  * Find the index of the question type with the lowest stability.
  * Only considers types where useAsQuestion is true (or undefined for backward compat).
  * This is the one that determines the card's mastery classification.
- * Returns -1 if no progress exists.
+ * Returns -1 if no progress exists or if all question types share the same stability.
  */
 function getDeterminingQtIndex(questionTypeProgress: QuestionTypeProgress[]): number {
+  // Collect effective stabilities for all question types (null progress = 0 if any progress exists)
+  const questionTypes = questionTypeProgress
+    .map((qt, i) => ({ qt, i }))
+    .filter(({ qt }) => qt.useAsQuestion !== false);
+
+  const hasAnyQuestionProgress = questionTypes.some(({ qt }) => qt.progress !== null);
+  if (!hasAnyQuestionProgress) return -1;
+
+  const stabilities = questionTypes.map(({ qt }) =>
+    qt.progress !== null ? qt.progress.stability : 0
+  );
+
+  // If all stabilities are the same, don't highlight any
+  const allEqual = stabilities.every((s) => s === stabilities[0]);
+  if (allEqual) return -1;
+
+  // Find the index of the minimum stability
   let minStability = Infinity;
   let minIndex = -1;
 
-  for (let i = 0; i < questionTypeProgress.length; i++) {
-    const qt = questionTypeProgress[i];
-    // Skip explanation-only types
-    if (qt.useAsQuestion === false) continue;
-
-    const stability = qt.progress !== null ? qt.progress.stability : null;
-    if (stability !== null && stability < minStability) {
+  for (const { qt, i } of questionTypes) {
+    const stability = qt.progress !== null ? qt.progress.stability : 0;
+    if (stability < minStability) {
       minStability = stability;
       minIndex = i;
-    }
-  }
-
-  // If some question types have no progress but others do, the missing ones
-  // count as stability 0. Check if any null progress would be the lowest.
-  const hasAnyQuestionProgress = questionTypeProgress.some(
-    (qt) => qt.useAsQuestion !== false && qt.progress !== null
-  );
-  if (hasAnyQuestionProgress) {
-    for (let i = 0; i < questionTypeProgress.length; i++) {
-      const qt = questionTypeProgress[i];
-      if (qt.useAsQuestion === false) continue;
-      if (qt.progress === null && 0 < minStability) {
-        return i;
-      }
     }
   }
 
