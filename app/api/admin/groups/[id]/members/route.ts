@@ -48,6 +48,24 @@ export async function POST(
       }
     }
 
+    // Auto-enroll new members in mandatory decks for this group
+    const mandatoryAssignments = await prisma.deckGroupAssignment.findMany({
+      where: { groupId, mandatory: true },
+      select: { deckId: true },
+    });
+
+    if (mandatoryAssignments.length > 0) {
+      for (const userId of userIds) {
+        for (const { deckId } of mandatoryAssignments) {
+          await prisma.userDeck.upsert({
+            where: { userId_deckId: { userId, deckId } },
+            update: {},
+            create: { userId, deckId },
+          }).catch(() => {});
+        }
+      }
+    }
+
     return NextResponse.json({ added });
   } catch (error) {
     console.error("Error adding members:", error);

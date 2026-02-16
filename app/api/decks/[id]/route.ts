@@ -28,6 +28,7 @@ export async function GET(
         },
         groupAssignments: {
           select: {
+            mandatory: true,
             group: { select: { id: true, name: true } },
           },
         },

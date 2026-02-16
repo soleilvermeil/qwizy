@@ -145,11 +145,12 @@ model StudentGroupMember {
 }
 
 model DeckGroupAssignment {
-  id      String @id @default(cuid())
-  deckId  String
-  groupId String
-  deck    Deck         @relation(fields: [deckId], references: [id], onDelete: Cascade)
-  group   StudentGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  deckId    String
+  groupId   String
+  mandatory Boolean @default(false)
+  deck      Deck         @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  group     StudentGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([deckId, groupId])
 }

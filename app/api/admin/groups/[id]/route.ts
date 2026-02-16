@@ -6,6 +6,25 @@ type RouteParams = {
   params: Promise<{ id: string }>;
 };
 
+/**
+ * Auto-enroll all members of a group into a specific deck.
+ * Skips users who are already enrolled.
+ */
+async function autoEnrollGroupMembers(groupId: string, deckId: string) {
+  const members = await prisma.studentGroupMember.findMany({
+    where: { groupId },
+    select: { userId: true },
+  });
+
+  for (const { userId } of members) {
+    await prisma.userDeck.upsert({
+      where: { userId_deckId: { userId, deckId } },
+      update: {},
+      create: { userId, deckId },
+    });
+  }
+}
+
 // GET /api/admin/groups/[id] - Get group detail
 export async function GET(
   _request: NextRequest,
@@ -39,6 +58,8 @@ export async function GET(
         },
         deckAssignments: {
           select: {
+            id: true,
+            mandatory: true,
             deck: {
               select: {
                 id: true,
@@ -63,7 +84,11 @@ export async function GET(
       group: {
         ...group,
         members: group.members.map((m) => m.user),
-        decks: group.deckAssignments.map((a) => a.deck),
+        decks: group.deckAssignments.map((a) => ({
+          ...a.deck,
+          assignmentId: a.id,
+          mandatory: a.mandatory,
+        })),
         deckAssignments: undefined,
       },
     });
@@ -89,7 +114,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, canBrowsePublicDecks, deckIds } = body;
+    const { name, canBrowsePublicDecks, deckAssignments } = body;
 
     const data: Record<string, unknown> = {};
     if (name && name.trim()) {
@@ -105,16 +130,31 @@ export async function PUT(
     });
 
     // Update deck assignments if provided
-    if (Array.isArray(deckIds)) {
+    // Accepts: deckAssignments: [{ deckId: string, mandatory: boolean }]
+    if (Array.isArray(deckAssignments)) {
+      // Delete existing assignments
       await prisma.deckGroupAssignment.deleteMany({
         where: { groupId: id },
       });
-      for (const deckId of deckIds) {
-        await prisma.deckGroupAssignment.create({
-          data: { deckId, groupId: id },
-        }).catch(() => {
-          // Ignore non-existent decks
-        });
+
+      // Create new assignments
+      for (const assignment of deckAssignments as { deckId: string; mandatory?: boolean }[]) {
+        try {
+          await prisma.deckGroupAssignment.create({
+            data: {
+              deckId: assignment.deckId,
+              groupId: id,
+              mandatory: assignment.mandatory ?? false,
+            },
+          });
+
+          // Auto-enroll all group members for mandatory decks
+          if (assignment.mandatory) {
+            await autoEnrollGroupMembers(id, assignment.deckId);
+          }
+        } catch {
+          // Ignore non-existent decks or duplicates
+        }
       }
     }
 

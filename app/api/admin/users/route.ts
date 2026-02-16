@@ -154,16 +154,31 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Assign to groups
+      // Assign to groups and auto-enroll in mandatory decks
       for (const groupId of groupIds) {
-        await prisma.studentGroupMember.create({
-          data: {
-            userId: user.id,
-            groupId,
-          },
-        }).catch(() => {
+        try {
+          await prisma.studentGroupMember.create({
+            data: {
+              userId: user.id,
+              groupId,
+            },
+          });
+
+          // Auto-enroll in mandatory decks for this group
+          const mandatoryDecks = await prisma.deckGroupAssignment.findMany({
+            where: { groupId, mandatory: true },
+            select: { deckId: true },
+          });
+          for (const { deckId } of mandatoryDecks) {
+            await prisma.userDeck.upsert({
+              where: { userId_deckId: { userId: user.id, deckId } },
+              update: {},
+              create: { userId: user.id, deckId },
+            });
+          }
+        } catch {
           // Ignore if group doesn't exist or duplicate
-        });
+        }
       }
 
       created.push({ username, password });

@@ -85,15 +85,16 @@ export async function DELETE(
 
     if (user?.accountType === "EDUCATION") {
       const userGroupIds = user.groupMemberships.map((m) => m.groupId);
-      const assignment = await prisma.deckGroupAssignment.findFirst({
+      const mandatoryAssignment = await prisma.deckGroupAssignment.findFirst({
         where: {
           deckId,
           groupId: { in: userGroupIds },
+          mandatory: true,
         },
       });
-      if (assignment) {
+      if (mandatoryAssignment) {
         return NextResponse.json(
-          { error: "Cannot unenroll from a deck assigned by your group" },
+          { error: "Cannot unenroll from a mandatory deck assigned by your group" },
           { status: 403 }
         );
       }
