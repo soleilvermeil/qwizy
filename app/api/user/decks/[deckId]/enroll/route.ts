@@ -20,6 +20,29 @@ export async function POST(
       return NextResponse.json({ error: "Deck not found" }, { status: 404 });
     }
 
+    // Verify user can see this deck
+    if (!session.isAdmin && deck.visibility === "RESTRICTED") {
+      const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: {
+          groupMemberships: { select: { groupId: true } },
+        },
+      });
+      const userGroupIds = user?.groupMemberships.map((m) => m.groupId) || [];
+      const assignment = await prisma.deckGroupAssignment.findFirst({
+        where: {
+          deckId,
+          groupId: { in: userGroupIds },
+        },
+      });
+      if (!assignment) {
+        return NextResponse.json(
+          { error: "You don't have access to this deck" },
+          { status: 403 }
+        );
+      }
+    }
+
     await prisma.userDeck.upsert({
       where: {
         userId_deckId: { userId: session.userId, deckId },
@@ -50,6 +73,31 @@ export async function DELETE(
     }
 
     const { deckId } = await params;
+
+    // Check if the deck is group-assigned for this user (cannot unenroll)
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: {
+        accountType: true,
+        groupMemberships: { select: { groupId: true } },
+      },
+    });
+
+    if (user?.accountType === "EDUCATION") {
+      const userGroupIds = user.groupMemberships.map((m) => m.groupId);
+      const assignment = await prisma.deckGroupAssignment.findFirst({
+        where: {
+          deckId,
+          groupId: { in: userGroupIds },
+        },
+      });
+      if (assignment) {
+        return NextResponse.json(
+          { error: "Cannot unenroll from a deck assigned by your group" },
+          { status: 403 }
+        );
+      }
+    }
 
     await prisma.userDeck.deleteMany({
       where: { userId: session.userId, deckId },

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, createSession } from "@/lib/session";
 import { hashPassword, verifyPassword } from "@/lib/auth";
 
 // PUT /api/user/settings - Update user settings
@@ -31,10 +31,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const updates: { newCardsPerDay?: number; passwordHash?: string } = {};
+    const updates: {
+      newCardsPerDay?: number;
+      passwordHash?: string;
+      mustChangePassword?: boolean;
+    } = {};
 
     // Update new cards per day
     if (newCardsPerDay !== undefined) {
+      // Reject if locked by admin
+      if (user.newCardsPerDayLocked) {
+        return NextResponse.json(
+          { error: "This setting has been locked by your administrator" },
+          { status: 403 }
+        );
+      }
+
       const value = parseInt(newCardsPerDay);
       if (isNaN(value) || value < 1 || value > 100) {
         return NextResponse.json(
@@ -54,8 +66,8 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      // Verify current password (unless user has no password - admin)
-      if (user.passwordHash) {
+      // Verify current password (unless user has no password - admin, or mustChangePassword is set)
+      if (user.passwordHash && !user.mustChangePassword) {
         if (!currentPassword) {
           return NextResponse.json(
             { error: "Current password is required" },
@@ -73,6 +85,11 @@ export async function PUT(request: NextRequest) {
       }
 
       updates.passwordHash = await hashPassword(newPassword);
+
+      // Clear mustChangePassword flag if it was set
+      if (user.mustChangePassword) {
+        updates.mustChangePassword = false;
+      }
     }
 
     // Apply updates
@@ -90,9 +107,23 @@ export async function PUT(request: NextRequest) {
         id: true,
         username: true,
         isAdmin: true,
+        accountType: true,
+        mustChangePassword: true,
         newCardsPerDay: true,
+        newCardsPerDayLocked: true,
       },
     });
+
+    // If mustChangePassword was cleared, refresh the session
+    if (updates.mustChangePassword === false) {
+      await createSession({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        isAdmin: updatedUser.isAdmin,
+        accountType: updatedUser.accountType,
+        mustChangePassword: false,
+      });
+    }
 
     return NextResponse.json({ user: updatedUser });
   } catch (error) {

@@ -23,6 +23,18 @@ async function main() {
 
   console.log("Created admin user:", admin);
 
+  // Create default app settings
+  const appSettings = await prisma.appSettings.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: {
+      id: "singleton",
+      allowSelfRegistration: true,
+    },
+  });
+
+  console.log("App settings:", appSettings);
+
   // Backfill: auto-enroll users into decks where they already have progress
   const progressPairs = await prisma.userProgress.findMany({
     select: {

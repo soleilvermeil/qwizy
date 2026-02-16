@@ -18,6 +18,8 @@ export interface SessionPayload {
   userId: string;
   username: string;
   isAdmin: boolean;
+  accountType: string;
+  mustChangePassword: boolean;
   expiresAt: Date;
 }
 
@@ -39,6 +41,8 @@ export async function decrypt(token: string): Promise<SessionPayload | null> {
       userId: payload.userId as string,
       username: payload.username as string,
       isAdmin: payload.isAdmin as boolean,
+      accountType: (payload.accountType as string) || "PERSONAL",
+      mustChangePassword: (payload.mustChangePassword as boolean) || false,
       expiresAt: new Date(payload.expiresAt as string),
     };
   } catch {
@@ -50,12 +54,16 @@ export async function createSession(user: {
   id: string;
   username: string;
   isAdmin: boolean;
+  accountType?: string;
+  mustChangePassword?: boolean;
 }): Promise<void> {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const session: SessionPayload = {
     userId: user.id,
     username: user.username,
     isAdmin: user.isAdmin,
+    accountType: user.accountType || "PERSONAL",
+    mustChangePassword: user.mustChangePassword || false,
     expiresAt,
   };
 

@@ -55,12 +55,23 @@ interface QuestionType {
   askHintFieldIds: string | null;
 }
 
+interface GroupAssignment {
+  group: { id: string; name: string };
+}
+
+interface GroupOption {
+  id: string;
+  name: string;
+}
+
 interface Deck {
   id: string;
   name: string;
   description: string | null;
+  visibility: string;
   fields: Field[];
   questionTypes: QuestionType[];
+  groupAssignments: GroupAssignment[];
   _count: {
     cards: number;
   };
@@ -105,6 +116,12 @@ export default function EditDeckPage({ params }: PageProps) {
   const [editShowHintFieldIds, setEditShowHintFieldIds] = useState<string[]>([]);
   const [editAskHintFieldIds, setEditAskHintFieldIds] = useState<string[]>([]);
   const [editQuestionTypeError, setEditQuestionTypeError] = useState("");
+  // Visibility state
+  const [visibility, setVisibility] = useState("PUBLIC");
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
+  const [allGroups, setAllGroups] = useState<GroupOption[]>([]);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const [visibilitySuccess, setVisibilitySuccess] = useState("");
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -112,6 +129,10 @@ export default function EditDeckPage({ params }: PageProps) {
       if (!response.ok) throw new Error("Deck not found");
       const data = await response.json();
       setDeck(data.deck);
+      setVisibility(data.deck.visibility || "PUBLIC");
+      setSelectedGroupIds(
+        (data.deck.groupAssignments || []).map((a: GroupAssignment) => a.group.id)
+      );
     } catch (error) {
       console.error("Error fetching deck:", error);
       router.push("/admin/decks");
@@ -131,10 +152,21 @@ export default function EditDeckPage({ params }: PageProps) {
     }
   }, [id]);
 
+  const fetchGroups = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/groups");
+      const data = await response.json();
+      setAllGroups(data.groups || []);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     fetchDeck();
     fetchCards();
-  }, [fetchDeck, fetchCards]);
+    fetchGroups();
+  }, [fetchDeck, fetchCards, fetchGroups]);
 
   const handleUpdateDeck = async (data: {
     name: string;
@@ -354,6 +386,37 @@ export default function EditDeckPage({ params }: PageProps) {
     }
   };
 
+  const handleSaveVisibility = async () => {
+    if (!deck) return;
+    setIsSavingVisibility(true);
+    setVisibilitySuccess("");
+    try {
+      const response = await fetch(`/api/decks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: deck.name,
+          description: deck.description || "",
+          visibility,
+          groupIds: selectedGroupIds,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save");
+      setVisibilitySuccess("Visibility settings saved");
+      fetchDeck();
+    } catch {
+      // ignore
+    } finally {
+      setIsSavingVisibility(false);
+    }
+  };
+
+  const toggleVisibilityGroup = (groupId: string) => {
+    setSelectedGroupIds((prev) =>
+      prev.includes(groupId) ? prev.filter((g) => g !== groupId) : [...prev, groupId]
+    );
+  };
+
   const getFieldName = (fieldId: string) => {
     return deck?.fields.find((f) => f.id === fieldId)?.name || "Unknown";
   };
@@ -433,6 +496,83 @@ export default function EditDeckPage({ params }: PageProps) {
             </Button>
           </div>
         </CardHeader>
+      </Card>
+
+      {/* Visibility Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Visibility</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                visibility === "PUBLIC" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+              }`}>
+                <input
+                  type="radio"
+                  name="visibility"
+                  value="PUBLIC"
+                  checked={visibility === "PUBLIC"}
+                  onChange={() => setVisibility("PUBLIC")}
+                  className="mt-0.5 accent-[var(--color-primary)]"
+                />
+                <div>
+                  <p className="font-medium text-foreground">Public</p>
+                  <p className="text-sm text-muted">Visible to all users (education users require group permission)</p>
+                </div>
+              </label>
+
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                visibility === "RESTRICTED" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+              }`}>
+                <input
+                  type="radio"
+                  name="visibility"
+                  value="RESTRICTED"
+                  checked={visibility === "RESTRICTED"}
+                  onChange={() => setVisibility("RESTRICTED")}
+                  className="mt-0.5 accent-[var(--color-primary)]"
+                />
+                <div>
+                  <p className="font-medium text-foreground">Restricted to groups</p>
+                  <p className="text-sm text-muted">Only visible to members of selected groups</p>
+                </div>
+              </label>
+            </div>
+
+            {visibility === "RESTRICTED" && allGroups.length > 0 && (
+              <div className="space-y-2 pl-6">
+                {allGroups.map((group) => (
+                  <label
+                    key={group.id}
+                    className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-colors ${
+                      selectedGroupIds.includes(group.id)
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.includes(group.id)}
+                      onChange={() => toggleVisibilityGroup(group.id)}
+                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <span className="text-foreground text-sm">{group.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {visibilitySuccess && (
+              <p className="text-sm text-success">{visibilitySuccess}</p>
+            )}
+
+            <Button size="sm" onClick={handleSaveVisibility} isLoading={isSavingVisibility}>
+              Save Visibility
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Question Types Section */}

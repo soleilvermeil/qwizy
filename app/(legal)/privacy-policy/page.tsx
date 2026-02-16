@@ -109,6 +109,44 @@ export default function PrivacyPolicyPage() {
         </div>
       </section>
 
+      {/* Education Accounts */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-foreground">
+          Education Accounts
+        </h2>
+        <p className="text-muted-foreground leading-relaxed">
+          This application supports education accounts that are created and
+          managed by the instance administrator on behalf of students. If you
+          are using an education account, the following applies:
+        </p>
+        <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+          <li>
+            Your account was created by the instance administrator. Your
+            username and initial password were set by them.
+          </li>
+          <li>
+            <span className="font-medium">
+              Administrators can view your learning progress
+            </span>{" "}
+            &mdash; including mastery levels, review history, due dates, and
+            statistics across all enrolled decks.
+          </li>
+          <li>
+            Administrators can reset your password, manage your account
+            settings (such as the number of new cards per day), and control
+            which settings you can modify.
+          </li>
+          <li>
+            Education accounts may have restricted access to certain features
+            (e.g., browsing public decks) as configured by the administrator.
+          </li>
+          <li>
+            Your account may be assigned to one or more student groups. Group
+            membership determines which decks are visible to you.
+          </li>
+        </ul>
+      </section>
+
       {/* What We Don't Collect */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">
@@ -176,6 +214,17 @@ export default function PrivacyPolicyPage() {
                 <td className="p-3">Session cookie (JWT)</td>
                 <td className="p-3">
                   Contract performance (Art. 6(1)(b))
+                </td>
+              </tr>
+              <tr className="border-t border-border">
+                <td className="p-3">
+                  Managing education accounts and monitoring student progress
+                </td>
+                <td className="p-3">
+                  Account data, group membership, learning progress
+                </td>
+                <td className="p-3">
+                  Legitimate interest (Art. 6(1)(f)) / Contract (Art. 6(1)(b))
                 </td>
               </tr>
             </tbody>

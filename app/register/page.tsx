@@ -2,8 +2,14 @@ import { RegisterForm } from "@/components/auth";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui";
 import { Footer } from "@/components/layout/Footer";
 import Link from "next/link";
+import { prisma } from "@/lib/db";
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+  const settings = await prisma.appSettings.findUnique({
+    where: { id: "singleton" },
+  });
+  const registrationAllowed = settings?.allowSelfRegistration ?? true;
+
   return (
     <main className="min-h-screen flex flex-col">
       <div className="flex-1 flex items-center justify-center px-4 py-8">
@@ -16,13 +22,25 @@ export default function RegisterPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Create an account</CardTitle>
+              <CardTitle>
+                {registrationAllowed ? "Create an account" : "Registration Disabled"}
+              </CardTitle>
               <CardDescription>
-                Start your learning journey today
+                {registrationAllowed
+                  ? "Start your learning journey today"
+                  : "Registration is currently disabled. Please contact your administrator."}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RegisterForm />
+              {registrationAllowed ? (
+                <RegisterForm />
+              ) : (
+                <div className="text-center py-4">
+                  <Link href="/login" className="text-primary hover:underline">
+                    Go to Login
+                  </Link>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createUser } from "@/lib/auth";
 import { createSession } from "@/lib/session";
+import { prisma } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if self-registration is allowed
+    const settings = await prisma.appSettings.findUnique({
+      where: { id: "singleton" },
+    });
+    if (settings && !settings.allowSelfRegistration) {
+      return NextResponse.json(
+        { error: "Registration is currently disabled. Please contact your administrator." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { username, password, confirmPassword } = body;
 

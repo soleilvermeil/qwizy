@@ -26,6 +26,11 @@ export async function GET(
         _count: {
           select: { cards: true },
         },
+        groupAssignments: {
+          select: {
+            group: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
@@ -63,7 +68,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, description, fields } = body;
+    const { name, description, fields, visibility, groupIds } = body;
 
     if (!name || name.trim() === "") {
       return NextResponse.json(
@@ -75,13 +80,28 @@ export async function PUT(
     // Update deck and fields in a transaction
     const deck = await prisma.$transaction(async (tx) => {
       // Update deck basic info
+      const deckData: Record<string, unknown> = {
+        name: name.trim(),
+        description: description?.trim() || null,
+      };
+      if (visibility === "PUBLIC" || visibility === "RESTRICTED") {
+        deckData.visibility = visibility;
+      }
+
       await tx.deck.update({
         where: { id },
-        data: {
-          name: name.trim(),
-          description: description?.trim() || null,
-        },
+        data: deckData,
       });
+
+      // Update group assignments if provided
+      if (Array.isArray(groupIds)) {
+        await tx.deckGroupAssignment.deleteMany({ where: { deckId: id } });
+        for (const groupId of groupIds) {
+          await tx.deckGroupAssignment.create({
+            data: { deckId: id, groupId },
+          }).catch(() => {});
+        }
+      }
 
       // If fields are provided, update them
       if (fields && Array.isArray(fields)) {

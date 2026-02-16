@@ -23,13 +23,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await createSession(user);
+    await createSession({
+      id: user.id,
+      username: user.username,
+      isAdmin: user.isAdmin,
+      accountType: user.accountType,
+      mustChangePassword: user.mustChangePassword,
+    });
 
     return NextResponse.json({
       user: {
         id: user.id,
         username: user.username,
         isAdmin: user.isAdmin,
+        accountType: user.accountType,
+        mustChangePassword: user.mustChangePassword,
       },
     });
   } catch (error) {

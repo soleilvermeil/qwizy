@@ -109,6 +109,35 @@ export default function LegalNoticePage() {
         </p>
       </section>
 
+      {/* Educational Use */}
+      <section className="space-y-3">
+        <h2 className="text-xl font-semibold text-foreground">
+          Educational Use
+        </h2>
+        <p className="text-muted-foreground leading-relaxed">
+          This service may be used in an educational context. When used by
+          educational institutions, the instance administrator is the data
+          controller and is responsible for:
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <li>
+            Obtaining appropriate consent for the creation and management of
+            student accounts, in accordance with applicable data protection
+            regulations (including GDPR Art. 8 regarding conditions applicable
+            to child&apos;s consent)
+          </li>
+          <li>
+            Informing students (and, where applicable, their parents or legal
+            guardians) about the collection and processing of their personal
+            data
+          </li>
+          <li>
+            Ensuring that the use of the service complies with all applicable
+            educational and data protection regulations in their jurisdiction
+          </li>
+        </ul>
+      </section>
+
       {/* Applicable Law */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">

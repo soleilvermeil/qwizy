@@ -19,7 +19,9 @@ interface User {
   id: string;
   username: string;
   isAdmin: boolean;
+  accountType: string;
   newCardsPerDay: number;
+  newCardsPerDayLocked: boolean;
 }
 
 export default function SettingsPage() {
@@ -266,7 +268,11 @@ export default function SettingsPage() {
             <div className="flex justify-between py-2">
               <span className="text-muted">Account Type</span>
               <span className="font-medium text-foreground">
-                {user?.isAdmin ? "Administrator" : "User"}
+                {user?.isAdmin
+                  ? "Administrator"
+                  : user?.accountType === "EDUCATION"
+                  ? "Education"
+                  : "Personal"}
               </span>
             </div>
           </div>
@@ -281,20 +287,35 @@ export default function SettingsPage() {
             <CardDescription>Configure your learning preferences</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSaveCardsPerDay} className="space-y-4">
-              <Input
-                label="New cards per day"
-                type="number"
-                min="1"
-                max="100"
-                value={newCardsPerDay}
-                onChange={(e) => setNewCardsPerDay(e.target.value)}
-                helperText="How many new cards to learn each day (1-100)"
-              />
-              <Button type="submit" isLoading={isSavingCards}>
-                Save Changes
-              </Button>
-            </form>
+            {user?.newCardsPerDayLocked ? (
+              <div className="space-y-2">
+                <div className="flex justify-between py-2">
+                  <span className="text-muted">New cards per day</span>
+                  <span className="font-medium text-foreground">{user.newCardsPerDay}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  <svg className="inline w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  This value has been set by your administrator.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveCardsPerDay} className="space-y-4">
+                <Input
+                  label="New cards per day"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={newCardsPerDay}
+                  onChange={(e) => setNewCardsPerDay(e.target.value)}
+                  helperText="How many new cards to learn each day (1-100)"
+                />
+                <Button type="submit" isLoading={isSavingCards}>
+                  Save Changes
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
       )}

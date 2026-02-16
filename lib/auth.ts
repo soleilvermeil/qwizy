@@ -71,7 +71,10 @@ export async function getUserById(userId: string) {
       id: true,
       username: true,
       isAdmin: true,
+      accountType: true,
+      mustChangePassword: true,
       newCardsPerDay: true,
+      newCardsPerDayLocked: true,
       createdAt: true,
     },
   });
@@ -98,7 +101,10 @@ export async function updateUserSettings(
       id: true,
       username: true,
       isAdmin: true,
+      accountType: true,
+      mustChangePassword: true,
       newCardsPerDay: true,
+      newCardsPerDayLocked: true,
     },
   });
 }

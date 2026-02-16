@@ -38,6 +38,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(redirectTo, request.url));
   }
 
+  // Force password change redirect
+  if (session && session.mustChangePassword) {
+    const allowedPaths = ["/change-password", "/api/auth/logout", "/api/user/settings"];
+    const isAllowed = allowedPaths.some(
+      (p) => pathname === p || pathname.startsWith(`${p}/`)
+    );
+    if (!isAllowed && !pathname.startsWith("/api/")) {
+      return NextResponse.redirect(new URL("/change-password", request.url));
+    }
+  }
+
   // Check admin routes
   const isAdminRoute = adminRoutes.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
