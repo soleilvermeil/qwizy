@@ -22,6 +22,36 @@ async function main() {
   });
 
   console.log("Created admin user:", admin);
+
+  // Backfill: auto-enroll users into decks where they already have progress
+  const progressPairs = await prisma.userProgress.findMany({
+    select: {
+      userId: true,
+      card: { select: { deckId: true } },
+    },
+  });
+
+  const uniquePairs = new Map<string, { userId: string; deckId: string }>();
+  for (const p of progressPairs) {
+    const key = `${p.userId}:${p.card.deckId}`;
+    if (!uniquePairs.has(key)) {
+      uniquePairs.set(key, { userId: p.userId, deckId: p.card.deckId });
+    }
+  }
+
+  let enrollCount = 0;
+  for (const { userId, deckId } of uniquePairs.values()) {
+    await prisma.userDeck.upsert({
+      where: { userId_deckId: { userId, deckId } },
+      update: {},
+      create: { userId, deckId },
+    });
+    enrollCount++;
+  }
+
+  if (enrollCount > 0) {
+    console.log(`Backfilled ${enrollCount} deck enrollment(s) from existing progress.`);
+  }
 }
 
 main()

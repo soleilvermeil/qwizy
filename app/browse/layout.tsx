@@ -6,7 +6,7 @@ import { MobileNav } from "@/components/layout/MobileNav";
 import { Footer } from "@/components/layout/Footer";
 import { getUserNavItems } from "@/lib/user-nav";
 
-export default async function UserLayout({
+export default async function BrowseLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -19,7 +19,6 @@ export default async function UserLayout({
 
   const navItems = getUserNavItems(session.isAdmin);
 
-  // Admins can access user area too
   return (
     <div className="min-h-screen pb-16 sm:pb-0">
       <Header user={{ username: session.username, isAdmin: session.isAdmin }} />

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
-// GET /api/decks - List all decks
+// GET /api/decks - List all decks (with enrollment status if authenticated)
 export async function GET() {
   try {
     const decks = await prisma.deck.findMany({
@@ -17,7 +17,17 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ decks });
+    const session = await getSession();
+    const enrolledDeckIds = session
+      ? (
+          await prisma.userDeck.findMany({
+            where: { userId: session.userId },
+            select: { deckId: true },
+          })
+        ).map((e) => e.deckId)
+      : [];
+
+    return NextResponse.json({ decks, enrolledDeckIds });
   } catch (error) {
     console.error("Error fetching decks:", error);
     return NextResponse.json(

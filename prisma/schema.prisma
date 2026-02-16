@@ -18,6 +18,7 @@ model User {
   newCardsPerDay Int            @default(10)
   createdAt      DateTime       @default(now())
   progress       UserProgress[]
+  enrollments    UserDeck[]
 }
 
 model Deck {
@@ -28,6 +29,18 @@ model Deck {
   fields         Field[]
   cards          Card[]
   questionTypes  DeckQuestionType[]
+  enrollments    UserDeck[]
+}
+
+model UserDeck {
+  id        String   @id @default(cuid())
+  userId    String
+  deckId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deck      Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deckId])
 }
 
 model DeckQuestionType {

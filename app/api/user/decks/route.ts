@@ -19,8 +19,11 @@ export async function GET() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Get all decks with card counts
+    // Get enrolled decks with card counts
     const decks = await prisma.deck.findMany({
+      where: {
+        enrollments: { some: { userId } },
+      },
       include: {
         fields: {
           orderBy: { position: "asc" },

@@ -55,11 +55,14 @@ export function DeckSelector({ decks }: DeckSelectorProps) {
               </svg>
             </div>
             <h3 className="text-lg font-medium text-foreground mb-2">
-              No decks available
+              No decks added yet
             </h3>
-            <p className="text-muted">
-              Ask an admin to create some flashcard decks for you to study.
+            <p className="text-muted mb-4">
+              Browse the deck library to find decks to study.
             </p>
+            <Link href="/browse">
+              <Button>Browse Decks</Button>
+            </Link>
           </div>
         </CardContent>
       </Card>

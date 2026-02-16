@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { DeckSelector } from "@/components/user/DeckSelector";
 
 interface Field {
@@ -59,9 +60,17 @@ export default function UserDecksPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Your Decks</h1>
-        <p className="text-muted">Choose a deck to start learning</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">My Decks</h1>
+          <p className="text-muted">Choose a deck to start learning</p>
+        </div>
+        <Link
+          href="/browse"
+          className="text-sm font-medium text-primary hover:text-primary-hover transition-colors"
+        >
+          Browse more
+        </Link>
       </div>
 
       <DeckSelector decks={decks} />
