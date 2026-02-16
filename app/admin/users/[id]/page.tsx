@@ -260,39 +260,41 @@ export default function AdminUserDetailPage({
         </CardContent>
       </Card>
 
-      {/* Groups */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Groups</CardTitle>
-          <CardDescription>Manage group memberships</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {allGroups.length === 0 ? (
-            <p className="text-sm text-muted">No groups created yet</p>
-          ) : (
-            <div className="space-y-2">
-              {allGroups.map((group) => (
-                <label
-                  key={group.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    selectedGroupIds.includes(group.id)
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-muted-foreground"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedGroupIds.includes(group.id)}
-                    onChange={() => toggleGroup(group.id)}
-                    className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
-                  />
-                  <span className="text-foreground">{group.name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Groups (only for EDUCATION accounts) */}
+      {user.accountType === "EDUCATION" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Groups</CardTitle>
+            <CardDescription>Manage group memberships</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {allGroups.length === 0 ? (
+              <p className="text-sm text-muted">No groups created yet</p>
+            ) : (
+              <div className="space-y-2">
+                {allGroups.map((group) => (
+                  <label
+                    key={group.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedGroupIds.includes(group.id)
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupIds.includes(group.id)}
+                      onChange={() => toggleGroup(group.id)}
+                      className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                    />
+                    <span className="text-foreground">{group.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Save */}
       <Button onClick={handleSave} isLoading={isSaving}>

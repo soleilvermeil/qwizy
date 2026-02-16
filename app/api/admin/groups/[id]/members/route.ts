@@ -34,8 +34,24 @@ export async function POST(
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
+    // Only EDUCATION accounts can be added to groups
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, accountType: true },
+    });
+    const educationUserIds = users
+      .filter((u) => u.accountType === "EDUCATION")
+      .map((u) => u.id);
+
+    if (educationUserIds.length === 0) {
+      return NextResponse.json(
+        { error: "Only education accounts can be added to groups" },
+        { status: 400 }
+      );
+    }
+
     let added = 0;
-    for (const userId of userIds) {
+    for (const userId of educationUserIds) {
       try {
         await prisma.studentGroupMember.upsert({
           where: { userId_groupId: { userId, groupId } },
@@ -55,7 +71,7 @@ export async function POST(
     });
 
     if (mandatoryAssignments.length > 0) {
-      for (const userId of userIds) {
+      for (const userId of educationUserIds) {
         for (const { deckId } of mandatoryAssignments) {
           await prisma.userDeck.upsert({
             where: { userId_deckId: { userId, deckId } },
@@ -114,7 +130,6 @@ export async function DELETE(
 
     // Clean up deck enrollments for removed EDUCATION members
     if (assignedDeckIds.length > 0 && result.count > 0) {
-      // Fetch removed users' details
       const removedUsers = await prisma.user.findMany({
         where: {
           id: { in: userIds },
@@ -126,32 +141,16 @@ export async function DELETE(
         },
       });
 
-      // Fetch visibility for assigned decks
-      const decks = await prisma.deck.findMany({
-        where: { id: { in: assignedDeckIds } },
-        select: { id: true, visibility: true },
-      });
-      const deckVisibility = new Map(decks.map((d) => [d.id, d.visibility]));
-
       for (const user of removedUsers) {
-        // Other groups this user still belongs to (already removed from this group)
         const otherGroupIds = user.groupMemberships.map((m) => m.groupId);
 
         for (const deckId of assignedDeckIds) {
-          // 1. Deck still assigned to another of the user's groups?
+          // Is the deck still assigned to another of the user's groups?
           if (otherGroupIds.length > 0) {
             const stillAssigned = await prisma.deckGroupAssignment.findFirst({
               where: { deckId, groupId: { in: otherGroupIds } },
             });
             if (stillAssigned) continue;
-          }
-
-          // 2. PUBLIC deck and another group allows browsing?
-          if (deckVisibility.get(deckId) === "PUBLIC" && otherGroupIds.length > 0) {
-            const canBrowse = await prisma.studentGroup.findFirst({
-              where: { id: { in: otherGroupIds }, canBrowsePublicDecks: true },
-            });
-            if (canBrowse) continue;
           }
 
           // No remaining access -- unenroll

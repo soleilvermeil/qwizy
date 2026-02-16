@@ -69,7 +69,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, description, fields, visibility, groupIds } = body;
+    const { name, description, fields, visibility } = body;
 
     if (!name || name.trim() === "") {
       return NextResponse.json(
@@ -85,7 +85,7 @@ export async function PUT(
         name: name.trim(),
         description: description?.trim() || null,
       };
-      if (visibility === "PUBLIC" || visibility === "RESTRICTED") {
+      if (visibility === "PUBLIC" || visibility === "EDUCATION_ONLY") {
         deckData.visibility = visibility;
       }
 
@@ -93,16 +93,6 @@ export async function PUT(
         where: { id },
         data: deckData,
       });
-
-      // Update group assignments if provided
-      if (Array.isArray(groupIds)) {
-        await tx.deckGroupAssignment.deleteMany({ where: { deckId: id } });
-        for (const groupId of groupIds) {
-          await tx.deckGroupAssignment.create({
-            data: { deckId: id, groupId },
-          }).catch(() => {});
-        }
-      }
 
       // If fields are provided, update them
       if (fields && Array.isArray(fields)) {

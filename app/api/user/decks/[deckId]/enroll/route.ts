@@ -21,7 +21,7 @@ export async function POST(
     }
 
     // Verify user can see this deck
-    if (!session.isAdmin && deck.visibility === "RESTRICTED") {
+    if (!session.isAdmin && deck.visibility === "EDUCATION_ONLY") {
       const user = await prisma.user.findUnique({
         where: { id: session.userId },
         select: {

@@ -37,7 +37,6 @@ interface DeckInfo {
 interface Group {
   id: string;
   name: string;
-  canBrowsePublicDecks: boolean;
   members: Member[];
   decks: DeckInfo[];
 }
@@ -60,13 +59,12 @@ export default function AdminGroupDetailPage({
   const { id } = use(params);
   const [group, setGroup] = useState<Group | null>(null);
   const [deckStats, setDeckStats] = useState<DeckStat[]>([]);
-  const [allUsers, setAllUsers] = useState<{ id: string; username: string }[]>([]);
+  const [allUsers, setAllUsers] = useState<{ id: string; username: string; accountType: string }[]>([]);
   const [allDecks, setAllDecks] = useState<{ id: string; name: string }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Edit states
   const [groupName, setGroupName] = useState("");
-  const [canBrowsePublic, setCanBrowsePublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
@@ -95,7 +93,6 @@ export default function AdminGroupDetailPage({
       setAllDecks(decksRes.decks || []);
 
       setGroupName(groupRes.group.name);
-      setCanBrowsePublic(groupRes.group.canBrowsePublicDecks);
     } catch (err) {
       console.error("Error loading group:", err);
       setError("Failed to load group");
@@ -123,7 +120,6 @@ export default function AdminGroupDetailPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: groupName,
-          canBrowsePublicDecks: canBrowsePublic,
         }),
       });
       if (!response.ok) throw new Error("Failed to update group");
@@ -234,7 +230,9 @@ export default function AdminGroupDetailPage({
   }
 
   const memberIds = new Set(group.members.map((m) => m.id));
-  const availableUsers = allUsers.filter((u) => !memberIds.has(u.id));
+  const availableUsers = allUsers.filter(
+    (u) => !memberIds.has(u.id) && u.accountType === "EDUCATION"
+  );
 
   const assignedDeckIds = new Set(group.decks.map((d) => d.id));
   const availableDecks = allDecks.filter((d) => !assignedDeckIds.has(d.id));
@@ -270,17 +268,6 @@ export default function AdminGroupDetailPage({
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
             />
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={canBrowsePublic}
-                onChange={(e) => setCanBrowsePublic(e.target.checked)}
-                className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-foreground text-sm">
-                Allow students to browse public decks
-              </span>
-            </label>
             <Button onClick={handleSave} isLoading={isSaving} size="sm">
               Save Settings
             </Button>

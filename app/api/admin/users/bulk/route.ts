@@ -63,9 +63,15 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // Add group memberships
+    // Add group memberships (only for EDUCATION accounts)
     if (addGroupIds && addGroupIds.length > 0) {
-      for (const userId of userIds) {
+      const educationUsers = await prisma.user.findMany({
+        where: { id: { in: userIds }, accountType: "EDUCATION" },
+        select: { id: true },
+      });
+      const educationUserIds = educationUsers.map((u) => u.id);
+
+      for (const userId of educationUserIds) {
         for (const groupId of addGroupIds) {
           await prisma.studentGroupMember.upsert({
             where: { userId_groupId: { userId, groupId } },

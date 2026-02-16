@@ -141,14 +141,19 @@ export async function PUT(
       },
     });
 
-    // Update group memberships if provided
+    // Update group memberships if provided (only for EDUCATION accounts)
     if (Array.isArray(groupIds)) {
-      // Remove all existing memberships
+      if (user.accountType !== "EDUCATION") {
+        return NextResponse.json(
+          { error: "Only education accounts can be assigned to groups" },
+          { status: 400 }
+        );
+      }
+
       await prisma.studentGroupMember.deleteMany({
         where: { userId: id },
       });
 
-      // Add new memberships
       for (const groupId of groupIds) {
         await prisma.studentGroupMember.create({
           data: { userId: id, groupId },

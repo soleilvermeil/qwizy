@@ -56,12 +56,8 @@ interface QuestionType {
 }
 
 interface GroupAssignment {
+  mandatory: boolean;
   group: { id: string; name: string };
-}
-
-interface GroupOption {
-  id: string;
-  name: string;
 }
 
 interface Deck {
@@ -118,8 +114,6 @@ export default function EditDeckPage({ params }: PageProps) {
   const [editQuestionTypeError, setEditQuestionTypeError] = useState("");
   // Visibility state
   const [visibility, setVisibility] = useState("PUBLIC");
-  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
-  const [allGroups, setAllGroups] = useState<GroupOption[]>([]);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [visibilitySuccess, setVisibilitySuccess] = useState("");
 
@@ -130,9 +124,6 @@ export default function EditDeckPage({ params }: PageProps) {
       const data = await response.json();
       setDeck(data.deck);
       setVisibility(data.deck.visibility || "PUBLIC");
-      setSelectedGroupIds(
-        (data.deck.groupAssignments || []).map((a: GroupAssignment) => a.group.id)
-      );
     } catch (error) {
       console.error("Error fetching deck:", error);
       router.push("/admin/decks");
@@ -152,21 +143,10 @@ export default function EditDeckPage({ params }: PageProps) {
     }
   }, [id]);
 
-  const fetchGroups = useCallback(async () => {
-    try {
-      const response = await fetch("/api/admin/groups");
-      const data = await response.json();
-      setAllGroups(data.groups || []);
-    } catch {
-      // ignore
-    }
-  }, []);
-
   useEffect(() => {
     fetchDeck();
     fetchCards();
-    fetchGroups();
-  }, [fetchDeck, fetchCards, fetchGroups]);
+  }, [fetchDeck, fetchCards]);
 
   const handleUpdateDeck = async (data: {
     name: string;
@@ -398,7 +378,6 @@ export default function EditDeckPage({ params }: PageProps) {
           name: deck.name,
           description: deck.description || "",
           visibility,
-          groupIds: selectedGroupIds,
         }),
       });
       if (!response.ok) throw new Error("Failed to save");
@@ -409,12 +388,6 @@ export default function EditDeckPage({ params }: PageProps) {
     } finally {
       setIsSavingVisibility(false);
     }
-  };
-
-  const toggleVisibilityGroup = (groupId: string) => {
-    setSelectedGroupIds((prev) =>
-      prev.includes(groupId) ? prev.filter((g) => g !== groupId) : [...prev, groupId]
-    );
   };
 
   const getFieldName = (fieldId: string) => {
@@ -519,50 +492,27 @@ export default function EditDeckPage({ params }: PageProps) {
                 />
                 <div>
                   <p className="font-medium text-foreground">Public</p>
-                  <p className="text-sm text-muted">Visible to all users (education users require group permission)</p>
+                  <p className="text-sm text-muted">Visible to all personal accounts</p>
                 </div>
               </label>
 
               <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                visibility === "RESTRICTED" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+                visibility === "EDUCATION_ONLY" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
               }`}>
                 <input
                   type="radio"
                   name="visibility"
-                  value="RESTRICTED"
-                  checked={visibility === "RESTRICTED"}
-                  onChange={() => setVisibility("RESTRICTED")}
+                  value="EDUCATION_ONLY"
+                  checked={visibility === "EDUCATION_ONLY"}
+                  onChange={() => setVisibility("EDUCATION_ONLY")}
                   className="mt-0.5 accent-[var(--color-primary)]"
                 />
                 <div>
-                  <p className="font-medium text-foreground">Restricted to groups</p>
-                  <p className="text-sm text-muted">Only visible to members of selected groups</p>
+                  <p className="font-medium text-foreground">Education only</p>
+                  <p className="text-sm text-muted">Only visible to education accounts via group assignments</p>
                 </div>
               </label>
             </div>
-
-            {visibility === "RESTRICTED" && allGroups.length > 0 && (
-              <div className="space-y-2 pl-6">
-                {allGroups.map((group) => (
-                  <label
-                    key={group.id}
-                    className={`flex items-center gap-3 p-2 rounded-lg border cursor-pointer transition-colors ${
-                      selectedGroupIds.includes(group.id)
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-muted-foreground"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedGroupIds.includes(group.id)}
-                      onChange={() => toggleVisibilityGroup(group.id)}
-                      className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-                    />
-                    <span className="text-foreground text-sm">{group.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
 
             {visibilitySuccess && (
               <p className="text-sm text-success">{visibilitySuccess}</p>
@@ -571,6 +521,37 @@ export default function EditDeckPage({ params }: PageProps) {
             <Button size="sm" onClick={handleSaveVisibility} isLoading={isSavingVisibility}>
               Save Visibility
             </Button>
+
+            {/* Read-only: groups that have this deck assigned */}
+            {deck.groupAssignments && deck.groupAssignments.length > 0 && (
+              <div className="pt-3 border-t border-border">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                  Assigned to groups
+                </p>
+                <div className="space-y-1.5">
+                  {deck.groupAssignments.map((assignment) => (
+                    <div key={assignment.group.id} className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/groups/${assignment.group.id}`}
+                        className="text-sm text-foreground hover:text-primary"
+                      >
+                        {assignment.group.name}
+                      </Link>
+                      <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${
+                        assignment.mandatory
+                          ? "bg-primary/10 text-primary"
+                          : "bg-secondary text-muted-foreground"
+                      }`}>
+                        {assignment.mandatory ? "Mandatory" : "Visible"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted mt-2">
+                  Group assignments are managed from each group&apos;s detail page.
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

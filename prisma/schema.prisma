@@ -29,7 +29,7 @@ model Deck {
   id               String              @id @default(cuid())
   name             String
   description      String?
-  visibility       String              @default("PUBLIC") // "PUBLIC" | "RESTRICTED"
+  visibility       String              @default("PUBLIC") // "PUBLIC" | "EDUCATION_ONLY"
   createdAt        DateTime            @default(now())
   fields           Field[]
   cards            Card[]
@@ -125,12 +125,11 @@ model UserProgress {
 }
 
 model StudentGroup {
-  id                   String               @id @default(cuid())
-  name                 String
-  canBrowsePublicDecks Boolean              @default(false)
-  createdAt            DateTime             @default(now())
-  members              StudentGroupMember[]
-  deckAssignments      DeckGroupAssignment[]
+  id              String               @id @default(cuid())
+  name            String
+  createdAt       DateTime             @default(now())
+  members         StudentGroupMember[]
+  deckAssignments DeckGroupAssignment[]
 }
 
 model StudentGroupMember {

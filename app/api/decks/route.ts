@@ -31,7 +31,7 @@ export async function GET() {
     }
 
     // Build visibility filter for non-admin users
-    let visibleDeckIds: string[] | null = null; // null = no restriction needed
+    let where: Record<string, unknown> = {};
 
     if (session) {
       const user = await prisma.user.findUnique({
@@ -39,65 +39,27 @@ export async function GET() {
         select: {
           accountType: true,
           groupMemberships: {
-            select: {
-              group: {
-                select: {
-                  id: true,
-                  canBrowsePublicDecks: true,
-                },
-              },
-            },
+            select: { groupId: true },
           },
         },
       });
 
       if (user?.accountType === "EDUCATION") {
-        // Education users: restricted visibility
-        const userGroupIds = user.groupMemberships.map((m) => m.group.id);
-        const canBrowsePublic = user.groupMemberships.some(
-          (m) => m.group.canBrowsePublicDecks
-        );
-
-        // Get decks assigned to user's groups
+        // Education users: only see decks assigned to their groups
+        const userGroupIds = user.groupMemberships.map((m) => m.groupId);
         const groupDecks = await prisma.deckGroupAssignment.findMany({
           where: { groupId: { in: userGroupIds } },
           select: { deckId: true },
         });
-        const groupDeckIds = new Set(groupDecks.map((d) => d.deckId));
-
-        if (canBrowsePublic) {
-          // Can see PUBLIC decks + group-assigned decks
-          const publicDecks = await prisma.deck.findMany({
-            where: { visibility: "PUBLIC" },
-            select: { id: true },
-          });
-          visibleDeckIds = [
-            ...publicDecks.map((d) => d.id),
-            ...groupDeckIds,
-          ];
-        } else {
-          // Can only see group-assigned decks
-          visibleDeckIds = [...groupDeckIds];
-        }
+        where = { id: { in: groupDecks.map((d) => d.deckId) } };
+      } else {
+        // PERSONAL users: see only PUBLIC decks
+        where = { visibility: "PUBLIC" };
       }
-      // PERSONAL users see all PUBLIC + their group-assigned decks (if any)
-      // Since PERSONAL users have no restrictions on PUBLIC, we only need to
-      // add RESTRICTED decks from their groups
+    } else {
+      // Unauthenticated: see only PUBLIC decks
+      where = { visibility: "PUBLIC" };
     }
-
-    const where = visibleDeckIds !== null
-      ? { id: { in: visibleDeckIds } }
-      : { OR: [{ visibility: "PUBLIC" }, ...(session ? [{
-          groupAssignments: {
-            some: {
-              group: {
-                members: {
-                  some: { userId: session.userId },
-                },
-              },
-            },
-          },
-        }] : [])] };
 
     const decks = await prisma.deck.findMany({
       where,
@@ -140,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, fields, visibility = "PUBLIC", groupIds = [] } = body;
+    const { name, description, fields, visibility = "PUBLIC" } = body;
 
     if (!name || name.trim() === "") {
       return NextResponse.json(
@@ -161,7 +123,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         description: description?.trim() || null,
-        visibility: visibility === "RESTRICTED" ? "RESTRICTED" : "PUBLIC",
+        visibility: visibility === "EDUCATION_ONLY" ? "EDUCATION_ONLY" : "PUBLIC",
         fields: {
           create: deckFields.map((f: { name: string }, index: number) => ({
             name: f.name.trim(),
@@ -175,15 +137,6 @@ export async function POST(request: NextRequest) {
         },
       },
     });
-
-    // Create group assignments if restricted
-    if (groupIds.length > 0) {
-      for (const groupId of groupIds) {
-        await prisma.deckGroupAssignment.create({
-          data: { deckId: deck.id, groupId },
-        }).catch(() => {});
-      }
-    }
 
     return NextResponse.json({ deck }, { status: 201 });
   } catch (error) {

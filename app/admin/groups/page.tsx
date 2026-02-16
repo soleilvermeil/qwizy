@@ -7,7 +7,6 @@ import { Button, Input, Card, CardContent, Modal, ModalFooter } from "@/componen
 interface Group {
   id: string;
   name: string;
-  canBrowsePublicDecks: boolean;
   createdAt: string;
   _count: {
     members: number;
@@ -21,7 +20,6 @@ export default function AdminGroupsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupCanBrowse, setNewGroupCanBrowse] = useState(false);
   const [deleteGroupId, setDeleteGroupId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -50,13 +48,11 @@ export default function AdminGroupsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newGroupName.trim(),
-          canBrowsePublicDecks: newGroupCanBrowse,
         }),
       });
       if (response.ok) {
         setIsCreateOpen(false);
         setNewGroupName("");
-        setNewGroupCanBrowse(false);
         fetchGroups();
       }
     } catch (error) {
@@ -133,11 +129,6 @@ export default function AdminGroupsPage() {
                       <p>{group._count.members} member{group._count.members !== 1 ? "s" : ""}</p>
                       <p>{group._count.deckAssignments} deck{group._count.deckAssignments !== 1 ? "s" : ""} assigned</p>
                     </div>
-                    {group.canBrowsePublicDecks && (
-                      <span className="px-2 py-0.5 text-xs bg-success/10 text-success rounded-full">
-                        Can browse public decks
-                      </span>
-                    )}
                   </div>
                   <div className="flex gap-2 mt-4 pt-4 border-t border-border">
                     <Link href={`/admin/groups/${group.id}`} className="flex-1">
@@ -170,15 +161,6 @@ export default function AdminGroupsPage() {
             placeholder="e.g., Class 3A"
             autoFocus
           />
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={newGroupCanBrowse}
-              onChange={(e) => setNewGroupCanBrowse(e.target.checked)}
-              className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
-            />
-            <span className="text-foreground text-sm">Allow students to browse public decks</span>
-          </label>
         </div>
         <ModalFooter>
           <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>

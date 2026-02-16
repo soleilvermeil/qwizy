@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, canBrowsePublicDecks = false } = body;
+    const { name } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json(
@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
     const group = await prisma.studentGroup.create({
       data: {
         name: name.trim(),
-        canBrowsePublicDecks,
       },
     });
 

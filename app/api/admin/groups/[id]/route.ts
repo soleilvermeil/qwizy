@@ -30,9 +30,8 @@ async function autoEnrollGroupMembers(groupId: string, deckId: string) {
  * have access through any of their other groups.
  *
  * For each removed deck and each EDUCATION member of the group:
- *   1. Check if the deck is assigned to any OTHER group the user belongs to.
- *   2. If not, check if the deck is PUBLIC and any other group allows browsing.
- *   3. If neither, unenroll the user from the deck.
+ *   - Check if the deck is assigned to any OTHER group the user belongs to.
+ *   - If not, unenroll the user from the deck.
  */
 async function cleanupRemovedDecks(
   groupId: string,
@@ -40,7 +39,6 @@ async function cleanupRemovedDecks(
 ) {
   if (removedDeckIds.length === 0) return;
 
-  // Get EDUCATION members of this group
   const members = await prisma.studentGroupMember.findMany({
     where: { groupId },
     select: {
@@ -60,40 +58,18 @@ async function cleanupRemovedDecks(
 
   if (educationMembers.length === 0) return;
 
-  // Fetch visibility for all removed decks
-  const removedDecks = await prisma.deck.findMany({
-    where: { id: { in: removedDeckIds } },
-    select: { id: true, visibility: true },
-  });
-  const deckVisibility = new Map(removedDecks.map((d) => [d.id, d.visibility]));
-
   for (const user of educationMembers) {
-    // Other groups this user belongs to (excluding the current one)
     const otherGroupIds = user.groupMemberships
       .map((m) => m.groupId)
       .filter((gId) => gId !== groupId);
 
     for (const deckId of removedDeckIds) {
-      // 1. Is the deck still assigned to another of the user's groups?
+      // Is the deck still assigned to another of the user's groups?
       if (otherGroupIds.length > 0) {
         const stillAssigned = await prisma.deckGroupAssignment.findFirst({
-          where: {
-            deckId,
-            groupId: { in: otherGroupIds },
-          },
+          where: { deckId, groupId: { in: otherGroupIds } },
         });
-        if (stillAssigned) continue; // User keeps access
-      }
-
-      // 2. Is the deck PUBLIC and does any other group allow browsing?
-      if (deckVisibility.get(deckId) === "PUBLIC" && otherGroupIds.length > 0) {
-        const canBrowse = await prisma.studentGroup.findFirst({
-          where: {
-            id: { in: otherGroupIds },
-            canBrowsePublicDecks: true,
-          },
-        });
-        if (canBrowse) continue; // User can still see it via public browsing
+        if (stillAssigned) continue;
       }
 
       // No remaining access -- unenroll
@@ -193,14 +169,11 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, canBrowsePublicDecks, deckAssignments } = body;
+    const { name, deckAssignments } = body;
 
     const data: Record<string, unknown> = {};
     if (name && name.trim()) {
       data.name = name.trim();
-    }
-    if (typeof canBrowsePublicDecks === "boolean") {
-      data.canBrowsePublicDecks = canBrowsePublicDecks;
     }
 
     const group = await prisma.studentGroup.update({
