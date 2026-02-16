@@ -98,12 +98,69 @@ export async function DELETE(
       );
     }
 
+    // Before removing, get decks assigned to this group for cleanup
+    const groupAssignments = await prisma.deckGroupAssignment.findMany({
+      where: { groupId },
+      select: { deckId: true },
+    });
+    const assignedDeckIds = groupAssignments.map((a) => a.deckId);
+
     const result = await prisma.studentGroupMember.deleteMany({
       where: {
         groupId,
         userId: { in: userIds },
       },
     });
+
+    // Clean up deck enrollments for removed EDUCATION members
+    if (assignedDeckIds.length > 0 && result.count > 0) {
+      // Fetch removed users' details
+      const removedUsers = await prisma.user.findMany({
+        where: {
+          id: { in: userIds },
+          accountType: "EDUCATION",
+        },
+        select: {
+          id: true,
+          groupMemberships: { select: { groupId: true } },
+        },
+      });
+
+      // Fetch visibility for assigned decks
+      const decks = await prisma.deck.findMany({
+        where: { id: { in: assignedDeckIds } },
+        select: { id: true, visibility: true },
+      });
+      const deckVisibility = new Map(decks.map((d) => [d.id, d.visibility]));
+
+      for (const user of removedUsers) {
+        // Other groups this user still belongs to (already removed from this group)
+        const otherGroupIds = user.groupMemberships.map((m) => m.groupId);
+
+        for (const deckId of assignedDeckIds) {
+          // 1. Deck still assigned to another of the user's groups?
+          if (otherGroupIds.length > 0) {
+            const stillAssigned = await prisma.deckGroupAssignment.findFirst({
+              where: { deckId, groupId: { in: otherGroupIds } },
+            });
+            if (stillAssigned) continue;
+          }
+
+          // 2. PUBLIC deck and another group allows browsing?
+          if (deckVisibility.get(deckId) === "PUBLIC" && otherGroupIds.length > 0) {
+            const canBrowse = await prisma.studentGroup.findFirst({
+              where: { id: { in: otherGroupIds }, canBrowsePublicDecks: true },
+            });
+            if (canBrowse) continue;
+          }
+
+          // No remaining access -- unenroll
+          await prisma.userDeck.deleteMany({
+            where: { userId: user.id, deckId },
+          });
+        }
+      }
+    }
 
     return NextResponse.json({ removed: result.count });
   } catch (error) {

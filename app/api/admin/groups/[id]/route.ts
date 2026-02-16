@@ -25,6 +25,85 @@ async function autoEnrollGroupMembers(groupId: string, deckId: string) {
   }
 }
 
+/**
+ * When decks are removed from a group, unenroll EDUCATION users who no longer
+ * have access through any of their other groups.
+ *
+ * For each removed deck and each EDUCATION member of the group:
+ *   1. Check if the deck is assigned to any OTHER group the user belongs to.
+ *   2. If not, check if the deck is PUBLIC and any other group allows browsing.
+ *   3. If neither, unenroll the user from the deck.
+ */
+async function cleanupRemovedDecks(
+  groupId: string,
+  removedDeckIds: string[]
+) {
+  if (removedDeckIds.length === 0) return;
+
+  // Get EDUCATION members of this group
+  const members = await prisma.studentGroupMember.findMany({
+    where: { groupId },
+    select: {
+      user: {
+        select: {
+          id: true,
+          accountType: true,
+          groupMemberships: { select: { groupId: true } },
+        },
+      },
+    },
+  });
+
+  const educationMembers = members
+    .map((m) => m.user)
+    .filter((u) => u.accountType === "EDUCATION");
+
+  if (educationMembers.length === 0) return;
+
+  // Fetch visibility for all removed decks
+  const removedDecks = await prisma.deck.findMany({
+    where: { id: { in: removedDeckIds } },
+    select: { id: true, visibility: true },
+  });
+  const deckVisibility = new Map(removedDecks.map((d) => [d.id, d.visibility]));
+
+  for (const user of educationMembers) {
+    // Other groups this user belongs to (excluding the current one)
+    const otherGroupIds = user.groupMemberships
+      .map((m) => m.groupId)
+      .filter((gId) => gId !== groupId);
+
+    for (const deckId of removedDeckIds) {
+      // 1. Is the deck still assigned to another of the user's groups?
+      if (otherGroupIds.length > 0) {
+        const stillAssigned = await prisma.deckGroupAssignment.findFirst({
+          where: {
+            deckId,
+            groupId: { in: otherGroupIds },
+          },
+        });
+        if (stillAssigned) continue; // User keeps access
+      }
+
+      // 2. Is the deck PUBLIC and does any other group allow browsing?
+      if (deckVisibility.get(deckId) === "PUBLIC" && otherGroupIds.length > 0) {
+        const canBrowse = await prisma.studentGroup.findFirst({
+          where: {
+            id: { in: otherGroupIds },
+            canBrowsePublicDecks: true,
+          },
+        });
+        if (canBrowse) continue; // User can still see it via public browsing
+      }
+
+      // No remaining access -- unenroll
+      await prisma.userDeck.deleteMany({
+        where: { userId: user.id, deckId },
+      });
+    }
+  }
+}
+
 // GET /api/admin/groups/[id] - Get group detail
 export async function GET(
   _request: NextRequest,
@@ -132,12 +211,20 @@ export async function PUT(
     // Update deck assignments if provided
     // Accepts: deckAssignments: [{ deckId: string, mandatory: boolean }]
     if (Array.isArray(deckAssignments)) {
+      // Snapshot current assignments to detect removals
+      const previousAssignments = await prisma.deckGroupAssignment.findMany({
+        where: { groupId: id },
+        select: { deckId: true },
+      });
+      const previousDeckIds = new Set(previousAssignments.map((a) => a.deckId));
+
       // Delete existing assignments
       await prisma.deckGroupAssignment.deleteMany({
         where: { groupId: id },
       });
 
       // Create new assignments
+      const newDeckIds = new Set<string>();
       for (const assignment of deckAssignments as { deckId: string; mandatory?: boolean }[]) {
         try {
           await prisma.deckGroupAssignment.create({
@@ -147,6 +234,7 @@ export async function PUT(
               mandatory: assignment.mandatory ?? false,
             },
           });
+          newDeckIds.add(assignment.deckId);
 
           // Auto-enroll all group members for mandatory decks
           if (assignment.mandatory) {
@@ -156,6 +244,12 @@ export async function PUT(
           // Ignore non-existent decks or duplicates
         }
       }
+
+      // Clean up enrollments for decks that were removed from this group
+      const removedDeckIds = [...previousDeckIds].filter(
+        (dId) => !newDeckIds.has(dId)
+      );
+      await cleanupRemovedDecks(id, removedDeckIds);
     }
 
     return NextResponse.json({ group });
@@ -180,6 +274,17 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    // Before deleting, clean up enrollments for decks that were assigned
+    const assignments = await prisma.deckGroupAssignment.findMany({
+      where: { groupId: id },
+      select: { deckId: true },
+    });
+    const assignedDeckIds = assignments.map((a) => a.deckId);
+
+    if (assignedDeckIds.length > 0) {
+      await cleanupRemovedDecks(id, assignedDeckIds);
+    }
 
     await prisma.studentGroup.delete({ where: { id } });
 
