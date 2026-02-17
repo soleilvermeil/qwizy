@@ -58,6 +58,7 @@ interface QuestionItem {
   askTts: TtsConfig | null;
   showHints?: HintConfig[];
   askHints?: HintConfig[];
+  distractors?: string[];
 }
 
 interface ExplanationItem {
@@ -80,6 +81,8 @@ interface Deck {
   name: string;
   fields: Field[];
   fieldPairs: { showFieldId: string; askFieldId: string }[];
+  mode: string;
+  quizChoices: number;
 }
 
 interface SessionStats {
@@ -515,6 +518,8 @@ export default function LearnPage({ params }: PageProps) {
             askTts={askTtsPlayback}
             showHints={showHintsResolved}
             askHints={askHintsResolved}
+            quizMode={deck.mode === "QUIZ"}
+            distractors={currentItem.question.distractors}
           />
         )}
       </div>

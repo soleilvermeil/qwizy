@@ -65,6 +65,8 @@ interface Deck {
   name: string;
   description: string | null;
   visibility: string;
+  mode: string;
+  quizChoices: number;
   fields: Field[];
   questionTypes: QuestionType[];
   groupAssignments: GroupAssignment[];
@@ -116,6 +118,11 @@ export default function EditDeckPage({ params }: PageProps) {
   const [visibility, setVisibility] = useState("PUBLIC");
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [visibilitySuccess, setVisibilitySuccess] = useState("");
+  // Quiz mode state
+  const [deckMode, setDeckMode] = useState("NORMAL");
+  const [quizChoices, setQuizChoices] = useState(4);
+  const [isSavingMode, setIsSavingMode] = useState(false);
+  const [modeSuccess, setModeSuccess] = useState("");
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -124,6 +131,8 @@ export default function EditDeckPage({ params }: PageProps) {
       const data = await response.json();
       setDeck(data.deck);
       setVisibility(data.deck.visibility || "PUBLIC");
+      setDeckMode(data.deck.mode || "NORMAL");
+      setQuizChoices(data.deck.quizChoices ?? 4);
     } catch (error) {
       console.error("Error fetching deck:", error);
       router.push("/admin/decks");
@@ -390,6 +399,31 @@ export default function EditDeckPage({ params }: PageProps) {
     }
   };
 
+  const handleSaveMode = async () => {
+    if (!deck) return;
+    setIsSavingMode(true);
+    setModeSuccess("");
+    try {
+      const response = await fetch(`/api/decks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: deck.name,
+          description: deck.description || "",
+          mode: deckMode,
+          quizChoices,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to save");
+      setModeSuccess("Study mode saved");
+      fetchDeck();
+    } catch {
+      // ignore
+    } finally {
+      setIsSavingMode(false);
+    }
+  };
+
   const getFieldName = (fieldId: string) => {
     return deck?.fields.find((f) => f.id === fieldId)?.name || "Unknown";
   };
@@ -552,6 +586,80 @@ export default function EditDeckPage({ params }: PageProps) {
                 </p>
               </div>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Study Mode Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Study Mode</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                deckMode === "NORMAL" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+              }`}>
+                <input
+                  type="radio"
+                  name="deckMode"
+                  value="NORMAL"
+                  checked={deckMode === "NORMAL"}
+                  onChange={() => setDeckMode("NORMAL")}
+                  className="mt-0.5 accent-[var(--color-primary)]"
+                />
+                <div>
+                  <p className="font-medium text-foreground">Normal</p>
+                  <p className="text-sm text-muted">Show answer on demand, then rate recall</p>
+                </div>
+              </label>
+
+              <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                deckMode === "QUIZ" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+              }`}>
+                <input
+                  type="radio"
+                  name="deckMode"
+                  value="QUIZ"
+                  checked={deckMode === "QUIZ"}
+                  onChange={() => setDeckMode("QUIZ")}
+                  className="mt-0.5 accent-[var(--color-primary)]"
+                />
+                <div>
+                  <p className="font-medium text-foreground">Quiz</p>
+                  <p className="text-sm text-muted">Multiple-choice answers with distractors from same categories</p>
+                </div>
+              </label>
+            </div>
+
+            {deckMode === "QUIZ" && (
+              <div className="pt-2">
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Number of choices (including correct answer)
+                </label>
+                <input
+                  type="number"
+                  min={2}
+                  max={10}
+                  value={quizChoices}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    if (!isNaN(val) && val >= 2 && val <= 10) setQuizChoices(val);
+                  }}
+                  className="w-24 px-3 py-2 rounded-lg border border-border bg-input-bg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+                <p className="text-xs text-muted mt-1">Between 2 and 10</p>
+              </div>
+            )}
+
+            {modeSuccess && (
+              <p className="text-sm text-success">{modeSuccess}</p>
+            )}
+
+            <Button size="sm" onClick={handleSaveMode} isLoading={isSavingMode}>
+              Save Study Mode
+            </Button>
           </div>
         </CardContent>
       </Card>

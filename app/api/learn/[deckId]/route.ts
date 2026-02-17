@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { getNewCardsIntroducedToday } from "@/lib/daily";
+import { getDistractors } from "@/lib/distractors";
 
 type RouteParams = {
   params: Promise<{ deckId: string }>;
@@ -348,31 +349,52 @@ export async function GET(
     const shuffledNew = shuffle(sessionNewQuestions);
     const sessionQuestions = [...shuffledDue, ...shuffledNew];
 
+    // Build a card lookup for distractor selection (quiz mode)
+    const isQuizMode = deck.mode === "QUIZ";
+    const cardLookup = new Map(allCards.map((c) => [c.id, c]));
+
     // Format response
-    const questions = sessionQuestions.map((q) => ({
-      cardId: q.cardId,
-      showFieldId: q.showFieldId,
-      askFieldId: q.askFieldId,
-      values: q.values,
-      progress: q.progress
-        ? {
-            stability: q.progress.stability,
-            difficulty: q.progress.difficulty,
-            state: q.progress.state,
-            scheduledDays: q.progress.scheduledDays,
-            reps: q.progress.reps,
-            lapses: q.progress.lapses,
-            elapsedDays: q.progress.elapsedDays,
-            learningSteps: q.progress.learningSteps,
-            dueDate: q.progress.dueDate,
-            lastReviewed: q.progress.lastReviewed,
-          }
-        : null,
-      showTts: q.showTts,
-      askTts: q.askTts,
-      showHints: q.showHints,
-      askHints: q.askHints,
-    }));
+    const questions = sessionQuestions.map((q) => {
+      // Generate distractors when in quiz mode
+      let distractors: string[] | undefined;
+      if (isQuizMode) {
+        const card = cardLookup.get(q.cardId);
+        if (card) {
+          distractors = getDistractors(
+            { id: card.id, tags: card.tags, values: card.values },
+            q.askFieldId,
+            allCards.map((c) => ({ id: c.id, tags: c.tags, values: c.values })),
+            deck.quizChoices - 1
+          );
+        }
+      }
+
+      return {
+        cardId: q.cardId,
+        showFieldId: q.showFieldId,
+        askFieldId: q.askFieldId,
+        values: q.values,
+        progress: q.progress
+          ? {
+              stability: q.progress.stability,
+              difficulty: q.progress.difficulty,
+              state: q.progress.state,
+              scheduledDays: q.progress.scheduledDays,
+              reps: q.progress.reps,
+              lapses: q.progress.lapses,
+              elapsedDays: q.progress.elapsedDays,
+              learningSteps: q.progress.learningSteps,
+              dueDate: q.progress.dueDate,
+              lastReviewed: q.progress.lastReviewed,
+            }
+          : null,
+        showTts: q.showTts,
+        askTts: q.askTts,
+        showHints: q.showHints,
+        askHints: q.askHints,
+        ...(distractors !== undefined ? { distractors } : {}),
+      };
+    });
 
     const sessionExplanations = isDueOnly ? [] : newExplanations;
     const explanations = sessionExplanations.map((e) => ({
@@ -395,6 +417,8 @@ export async function GET(
         name: deck.name,
         fields: deck.fields,
         fieldPairs,
+        mode: deck.mode,
+        quizChoices: deck.quizChoices,
       },
       questions,
       explanations,

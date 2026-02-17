@@ -30,6 +30,8 @@ model Deck {
   name             String
   description      String?
   visibility       String              @default("PUBLIC") // "PUBLIC" | "EDUCATION_ONLY"
+  mode             String              @default("NORMAL") // "NORMAL" | "QUIZ"
+  quizChoices      Int                 @default(4)        // 2..10, total options including correct answer
   createdAt        DateTime            @default(now())
   fields           Field[]
   cards            Card[]

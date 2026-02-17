@@ -69,7 +69,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, description, fields, visibility } = body;
+    const { name, description, fields, visibility, mode, quizChoices } = body;
 
     if (!name || name.trim() === "") {
       return NextResponse.json(
@@ -87,6 +87,12 @@ export async function PUT(
       };
       if (visibility === "PUBLIC" || visibility === "EDUCATION_ONLY") {
         deckData.visibility = visibility;
+      }
+      if (mode === "NORMAL" || mode === "QUIZ") {
+        deckData.mode = mode;
+      }
+      if (typeof quizChoices === "number" && quizChoices >= 2 && quizChoices <= 10) {
+        deckData.quizChoices = quizChoices;
       }
 
       await tx.deck.update({

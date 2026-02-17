@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Card, CardContent, Button } from "@/components/ui";
+import { QuizChoiceButton } from "@/components/user/QuizChoiceButton";
+import type { QuizChoiceState } from "@/components/user/QuizChoiceButton";
 import { speak, cancelSpeech } from "@/lib/tts";
 
 interface IntervalPreviews {
@@ -33,6 +35,29 @@ interface FlashCardProps {
   askTts?: TtsPlayback | null;
   showHints?: HintValue[];
   askHints?: HintValue[];
+  quizMode?: boolean;
+  distractors?: string[];
+}
+
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+type QuizPhase = "choosing" | "answered";
+
+function getSuggestedRating(
+  correct: boolean,
+  elapsedMs: number
+): "failed" | "hard" | "good" | "easy" {
+  if (!correct) return "failed";
+  if (elapsedMs < 2000) return "easy";
+  if (elapsedMs < 5000) return "good";
+  return "hard";
 }
 
 export function FlashCard({
@@ -47,10 +72,26 @@ export function FlashCard({
   askTts,
   showHints,
   askHints,
+  quizMode = false,
+  distractors,
 }: FlashCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   // Track the card identity so we can detect card changes
   const cardIdentityRef = useRef<string>("");
+
+  // Quiz mode state
+  const [quizPhase, setQuizPhase] = useState<QuizPhase>("choosing");
+  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const choiceStartTimeRef = useRef<number>(Date.now());
+  const [suggestedRating, setSuggestedRating] = useState<"failed" | "hard" | "good" | "easy" | null>(null);
+
+  // Build shuffled choices once per card (correct answer + distractors)
+  const shuffledChoices = useMemo(() => {
+    if (!quizMode || !distractors) return [];
+    const choices = [back, ...distractors];
+    return shuffleArray(choices);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [front, back, quizMode, distractors]);
 
   // Speak the show-side TTS when the card changes
   useEffect(() => {
@@ -58,6 +99,12 @@ export function FlashCard({
     if (identity === cardIdentityRef.current) return;
     cardIdentityRef.current = identity;
     setIsRevealed(false);
+
+    // Reset quiz state on card change
+    setQuizPhase("choosing");
+    setSelectedChoice(null);
+    setSuggestedRating(null);
+    choiceStartTimeRef.current = Date.now();
 
     if (showTts?.text) {
       speak(showTts);
@@ -84,11 +131,60 @@ export function FlashCard({
       cancelSpeech();
       onRate(rating);
       setIsRevealed(false);
+      // Reset quiz state
+      setQuizPhase("choosing");
+      setSelectedChoice(null);
+      setSuggestedRating(null);
     },
     [onRate],
   );
 
+  // Quiz: handle a choice click
+  const handleQuizChoice = useCallback(
+    (choice: string) => {
+      if (quizPhase !== "choosing") return;
+      const elapsedMs = Date.now() - choiceStartTimeRef.current;
+      const isCorrect = choice === back;
+      setSelectedChoice(choice);
+      setQuizPhase("answered");
+      setIsRevealed(true);
+      setSuggestedRating(getSuggestedRating(isCorrect, elapsedMs));
+      if (askTts?.text) {
+        speak(askTts);
+      }
+    },
+    [quizPhase, back, askTts],
+  );
+
+  // Quiz: "I don't remember" button
+  const handleDontRemember = useCallback(() => {
+    if (quizPhase !== "choosing") return;
+    setSelectedChoice(null);
+    setQuizPhase("answered");
+    setIsRevealed(true);
+    setSuggestedRating("failed");
+    if (askTts?.text) {
+      speak(askTts);
+    }
+  }, [quizPhase, askTts]);
+
+  // Compute quiz button state for each choice
+  const getChoiceState = useCallback(
+    (choice: string): QuizChoiceState => {
+      if (quizPhase === "choosing") return "neutral";
+      const isCorrect = choice === back;
+      const isSelected = choice === selectedChoice;
+      if (isCorrect && isSelected) return "correct-selected";
+      if (isCorrect && !isSelected) return "correct-missed";
+      if (!isCorrect && isSelected) return "distractor-clicked";
+      return "distractor-avoided";
+    },
+    [quizPhase, back, selectedChoice],
+  );
+
   // Keyboard shortcuts: Space to reveal, 0-3 to rate
+  const isRatingVisible = quizMode ? quizPhase === "answered" : isRevealed;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -97,12 +193,12 @@ export function FlashCard({
       )
         return;
 
-      if (e.code === "Space") {
+      if (!quizMode && e.code === "Space") {
         e.preventDefault();
         if (!isRevealed) handleReveal();
       }
 
-      if (isRevealed && !isLoading) {
+      if (isRatingVisible && !isLoading) {
         const ratingMap: Record<
           string,
           "failed" | "hard" | "good" | "easy"
@@ -123,7 +219,7 @@ export function FlashCard({
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isRevealed, isLoading, handleReveal, handleRate]);
+  }, [isRevealed, isRatingVisible, isLoading, handleReveal, handleRate, quizMode]);
 
   return (
     <Card variant="elevated" padding="lg" className="max-w-lg mx-auto">
@@ -216,75 +312,189 @@ export function FlashCard({
             </div>
           </div>
 
-          {/* Rating section */}
+          {/* Interaction section */}
           <div className="space-y-3 pt-4 border-t border-border">
-            <p className="text-sm text-center text-muted">
-              How well did you remember?
-            </p>
-            {isRevealed ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 animate-fade-in">
-                <Button
-                  variant="error"
-                  onClick={() => handleRate("failed")}
-                  disabled={isLoading}
-                  className="flex-col py-3"
-                >
-                  <span className="text-lg">
-                    Failed{" "}
-                    <kbd className="text-xs opacity-50 font-mono">0</kbd>
-                  </span>
-                  <span className="text-xs opacity-75">
-                    {intervalPreviews?.failed ?? "Again"}
-                  </span>
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={() => handleRate("hard")}
-                  disabled={isLoading}
-                  className="flex-col py-3"
-                >
-                  <span className="text-lg">
-                    Hard{" "}
-                    <kbd className="text-xs opacity-50 font-mono">1</kbd>
-                  </span>
-                  <span className="text-xs opacity-75">
-                    {intervalPreviews?.hard ?? "Soon"}
-                  </span>
-                </Button>
-                <Button
-                  variant="warning"
-                  onClick={() => handleRate("good")}
-                  disabled={isLoading}
-                  className="flex-col py-3"
-                >
-                  <span className="text-lg">
-                    Good{" "}
-                    <kbd className="text-xs opacity-50 font-mono">2</kbd>
-                  </span>
-                  <span className="text-xs opacity-75">
-                    {intervalPreviews?.good ?? "Normal"}
-                  </span>
-                </Button>
-                <Button
-                  variant="success"
-                  onClick={() => handleRate("easy")}
-                  disabled={isLoading}
-                  className="flex-col py-3"
-                >
-                  <span className="text-lg">
-                    Easy{" "}
-                    <kbd className="text-xs opacity-50 font-mono">3</kbd>
-                  </span>
-                  <span className="text-xs opacity-75">
-                    {intervalPreviews?.easy ?? "Later"}
-                  </span>
-                </Button>
-              </div>
+            {quizMode ? (
+              <>
+                {/* Quiz mode: choice buttons */}
+                {quizPhase === "choosing" && (
+                  <>
+                    <p className="text-sm text-center text-muted">
+                      Select the correct answer
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {shuffledChoices.map((choice, i) => (
+                        <QuizChoiceButton
+                          key={i}
+                          label={choice}
+                          state="neutral"
+                          onClick={() => handleQuizChoice(choice)}
+                          disabled={false}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex justify-center pt-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleDontRemember}
+                      >
+                        I don&apos;t remember
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* Quiz mode: after answering, show result + rating buttons */}
+                {quizPhase === "answered" && (
+                  <>
+                    <div className="flex flex-wrap justify-center gap-2 animate-fade-in">
+                      {shuffledChoices.map((choice, i) => (
+                        <QuizChoiceButton
+                          key={i}
+                          label={choice}
+                          state={getChoiceState(choice)}
+                          onClick={() => {}}
+                          disabled={true}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-sm text-center text-muted pt-2">
+                      How well did you remember?
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 animate-fade-in">
+                      <Button
+                        variant="error"
+                        onClick={() => handleRate("failed")}
+                        disabled={isLoading}
+                        className={`flex-col py-3 ${suggestedRating === "failed" ? "ring-2 ring-error ring-offset-2" : ""}`}
+                      >
+                        <span className="text-lg">
+                          Failed{" "}
+                          <kbd className="text-xs opacity-50 font-mono">0</kbd>
+                        </span>
+                        <span className="text-xs opacity-75">
+                          {intervalPreviews?.failed ?? "Again"}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={() => handleRate("hard")}
+                        disabled={isLoading}
+                        className={`flex-col py-3 ${suggestedRating === "hard" ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                      >
+                        <span className="text-lg">
+                          Hard{" "}
+                          <kbd className="text-xs opacity-50 font-mono">1</kbd>
+                        </span>
+                        <span className="text-xs opacity-75">
+                          {intervalPreviews?.hard ?? "Soon"}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="warning"
+                        onClick={() => handleRate("good")}
+                        disabled={isLoading}
+                        className={`flex-col py-3 ${suggestedRating === "good" ? "ring-2 ring-warning ring-offset-2" : ""}`}
+                      >
+                        <span className="text-lg">
+                          Good{" "}
+                          <kbd className="text-xs opacity-50 font-mono">2</kbd>
+                        </span>
+                        <span className="text-xs opacity-75">
+                          {intervalPreviews?.good ?? "Normal"}
+                        </span>
+                      </Button>
+                      <Button
+                        variant="success"
+                        onClick={() => handleRate("easy")}
+                        disabled={isLoading}
+                        className={`flex-col py-3 ${suggestedRating === "easy" ? "ring-2 ring-success ring-offset-2" : ""}`}
+                      >
+                        <span className="text-lg">
+                          Easy{" "}
+                          <kbd className="text-xs opacity-50 font-mono">3</kbd>
+                        </span>
+                        <span className="text-xs opacity-75">
+                          {intervalPreviews?.easy ?? "Later"}
+                        </span>
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </>
             ) : (
-              <Button onClick={handleReveal} variant="secondary" size="lg" fullWidth>
-                Show Answer{" "}
-                <kbd className="ml-2 text-xs opacity-50 font-mono">Space</kbd>
-              </Button>
+              <>
+                {/* Standard mode */}
+                <p className="text-sm text-center text-muted">
+                  How well did you remember?
+                </p>
+                {isRevealed ? (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 animate-fade-in">
+                    <Button
+                      variant="error"
+                      onClick={() => handleRate("failed")}
+                      disabled={isLoading}
+                      className="flex-col py-3"
+                    >
+                      <span className="text-lg">
+                        Failed{" "}
+                        <kbd className="text-xs opacity-50 font-mono">0</kbd>
+                      </span>
+                      <span className="text-xs opacity-75">
+                        {intervalPreviews?.failed ?? "Again"}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => handleRate("hard")}
+                      disabled={isLoading}
+                      className="flex-col py-3"
+                    >
+                      <span className="text-lg">
+                        Hard{" "}
+                        <kbd className="text-xs opacity-50 font-mono">1</kbd>
+                      </span>
+                      <span className="text-xs opacity-75">
+                        {intervalPreviews?.hard ?? "Soon"}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="warning"
+                      onClick={() => handleRate("good")}
+                      disabled={isLoading}
+                      className="flex-col py-3"
+                    >
+                      <span className="text-lg">
+                        Good{" "}
+                        <kbd className="text-xs opacity-50 font-mono">2</kbd>
+                      </span>
+                      <span className="text-xs opacity-75">
+                        {intervalPreviews?.good ?? "Normal"}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="success"
+                      onClick={() => handleRate("easy")}
+                      disabled={isLoading}
+                      className="flex-col py-3"
+                    >
+                      <span className="text-lg">
+                        Easy{" "}
+                        <kbd className="text-xs opacity-50 font-mono">3</kbd>
+                      </span>
+                      <span className="text-xs opacity-75">
+                        {intervalPreviews?.easy ?? "Later"}
+                      </span>
+                    </Button>
+                  </div>
+                ) : (
+                  <Button onClick={handleReveal} variant="secondary" size="lg" fullWidth>
+                    Show Answer{" "}
+                    <kbd className="ml-2 text-xs opacity-50 font-mono">Space</kbd>
+                  </Button>
+                )}
+              </>
             )}
           </div>
         </div>
