@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { getNewCardsIntroducedToday } from "@/lib/daily";
-import { getDistractors } from "@/lib/distractors";
+import { getDistractors, type DistractorStrategy } from "@/lib/distractors";
 
 type RouteParams = {
   params: Promise<{ deckId: string }>;
@@ -362,9 +362,11 @@ export async function GET(
         if (card) {
           distractors = getDistractors(
             { id: card.id, tags: card.tags, values: card.values },
+            q.showFieldId,
             q.askFieldId,
             allCards.map((c) => ({ id: c.id, tags: c.tags, values: c.values })),
-            deck.quizChoices - 1
+            deck.quizChoices - 1,
+            deck.distractorStrategy as DistractorStrategy
           );
         }
       }

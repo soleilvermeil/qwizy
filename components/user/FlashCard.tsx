@@ -55,8 +55,8 @@ function getSuggestedRating(
   elapsedMs: number
 ): "failed" | "hard" | "good" | "easy" {
   if (!correct) return "failed";
-  if (elapsedMs < 2000) return "easy";
-  if (elapsedMs < 5000) return "good";
+  if (elapsedMs < 5_000) return "easy";
+  if (elapsedMs < 10_000) return "good";
   return "hard";
 }
 

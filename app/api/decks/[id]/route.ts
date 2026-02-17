@@ -69,7 +69,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, description, fields, visibility, mode, quizChoices } = body;
+    const { name, description, fields, visibility, mode, quizChoices, distractorStrategy } = body;
 
     if (!name || name.trim() === "") {
       return NextResponse.json(
@@ -93,6 +93,9 @@ export async function PUT(
       }
       if (typeof quizChoices === "number" && quizChoices >= 2 && quizChoices <= 10) {
         deckData.quizChoices = quizChoices;
+      }
+      if (distractorStrategy === "TAGS" || distractorStrategy === "LEVENSHTEIN_ANSWER" || distractorStrategy === "LEVENSHTEIN_QUESTION") {
+        deckData.distractorStrategy = distractorStrategy;
       }
 
       await tx.deck.update({

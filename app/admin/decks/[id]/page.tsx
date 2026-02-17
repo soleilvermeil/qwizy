@@ -67,6 +67,7 @@ interface Deck {
   visibility: string;
   mode: string;
   quizChoices: number;
+  distractorStrategy: string;
   fields: Field[];
   questionTypes: QuestionType[];
   groupAssignments: GroupAssignment[];
@@ -121,6 +122,7 @@ export default function EditDeckPage({ params }: PageProps) {
   // Quiz mode state
   const [deckMode, setDeckMode] = useState("NORMAL");
   const [quizChoices, setQuizChoices] = useState(4);
+  const [distractorStrategy, setDistractorStrategy] = useState("TAGS");
   const [isSavingMode, setIsSavingMode] = useState(false);
   const [modeSuccess, setModeSuccess] = useState("");
 
@@ -133,6 +135,7 @@ export default function EditDeckPage({ params }: PageProps) {
       setVisibility(data.deck.visibility || "PUBLIC");
       setDeckMode(data.deck.mode || "NORMAL");
       setQuizChoices(data.deck.quizChoices ?? 4);
+      setDistractorStrategy(data.deck.distractorStrategy || "TAGS");
     } catch (error) {
       console.error("Error fetching deck:", error);
       router.push("/admin/decks");
@@ -412,6 +415,7 @@ export default function EditDeckPage({ params }: PageProps) {
           description: deck.description || "",
           mode: deckMode,
           quizChoices,
+          distractorStrategy,
         }),
       });
       if (!response.ok) throw new Error("Failed to save");
@@ -634,22 +638,82 @@ export default function EditDeckPage({ params }: PageProps) {
             </div>
 
             {deckMode === "QUIZ" && (
-              <div className="pt-2">
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Number of choices (including correct answer)
-                </label>
-                <input
-                  type="number"
-                  min={2}
-                  max={10}
-                  value={quizChoices}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val) && val >= 2 && val <= 10) setQuizChoices(val);
-                  }}
-                  className="w-24 px-3 py-2 rounded-lg border border-border bg-input-bg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                <p className="text-xs text-muted mt-1">Between 2 and 10</p>
+              <div className="pt-2 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Number of choices (including correct answer)
+                  </label>
+                  <input
+                    type="number"
+                    min={2}
+                    max={10}
+                    value={quizChoices}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val >= 2 && val <= 10) setQuizChoices(val);
+                    }}
+                    className="w-24 px-3 py-2 rounded-lg border border-border bg-input-bg text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <p className="text-xs text-muted mt-1">Between 2 and 10</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Distractor selection strategy
+                  </label>
+                  <div className="space-y-2">
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      distractorStrategy === "TAGS" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="distractorStrategy"
+                        value="TAGS"
+                        checked={distractorStrategy === "TAGS"}
+                        onChange={() => setDistractorStrategy("TAGS")}
+                        className="mt-0.5 accent-[var(--color-primary)]"
+                      />
+                      <div>
+                        <p className="font-medium text-foreground">Same tags</p>
+                        <p className="text-sm text-muted">Prefer cards that share at least one tag with the current card</p>
+                      </div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      distractorStrategy === "LEVENSHTEIN_ANSWER" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="distractorStrategy"
+                        value="LEVENSHTEIN_ANSWER"
+                        checked={distractorStrategy === "LEVENSHTEIN_ANSWER"}
+                        onChange={() => setDistractorStrategy("LEVENSHTEIN_ANSWER")}
+                        className="mt-0.5 accent-[var(--color-primary)]"
+                      />
+                      <div>
+                        <p className="font-medium text-foreground">Similar answers</p>
+                        <p className="text-sm text-muted">Pick answers that look similar to the correct answer</p>
+                      </div>
+                    </label>
+
+                    <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      distractorStrategy === "LEVENSHTEIN_QUESTION" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="distractorStrategy"
+                        value="LEVENSHTEIN_QUESTION"
+                        checked={distractorStrategy === "LEVENSHTEIN_QUESTION"}
+                        onChange={() => setDistractorStrategy("LEVENSHTEIN_QUESTION")}
+                        className="mt-0.5 accent-[var(--color-primary)]"
+                      />
+                      <div>
+                        <p className="font-medium text-foreground">Similar questions</p>
+                        <p className="text-sm text-muted">Pick cards whose question prompt looks similar to the current one</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
               </div>
             )}
 
