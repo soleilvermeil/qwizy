@@ -68,11 +68,13 @@ body {
 }
 
 /* Mobile-first touch targets */
-button, 
-input, 
-select, 
-textarea {
-  min-height: 44px;
+@layer base {
+  button, 
+  input, 
+  select, 
+  textarea {
+    min-height: 44px;
+  }
 }
 
 /* Focus styles */

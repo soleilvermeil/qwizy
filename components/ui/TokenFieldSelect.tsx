@@ -64,7 +64,7 @@ export function TokenFieldSelect({
                 <button
                   type="button"
                   onClick={() => handleRemove(val)}
-                  className="hover:text-error transition-colors"
+                  className="min-h-0 w-5 h-5 rounded-full bg-primary/10 hover:bg-error/20 hover:text-error inline-flex items-center justify-center transition-colors"
                   aria-label={`Remove ${getLabel(val)}`}
                 >
                   <svg
@@ -76,7 +76,7 @@ export function TokenFieldSelect({
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
+                      strokeWidth={3}
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>
@@ -90,7 +90,7 @@ export function TokenFieldSelect({
               <select
                 value=""
                 onChange={(e) => handleAdd(e.target.value)}
-                className="pl-2 pr-6 py-0.5 text-xs bg-transparent border border-border rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring text-muted appearance-none"
+                className="min-h-0 pl-2 pr-6 py-0.5 text-xs bg-transparent border border-border rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring text-muted appearance-none"
               >
                 <option value="" disabled>
                   {placeholder}
