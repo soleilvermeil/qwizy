@@ -59,7 +59,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <h1 className="text-2xl font-bold text-foreground">Website Settings</h1>
         <p className="text-muted">Configure global application settings</p>
       </div>
 
