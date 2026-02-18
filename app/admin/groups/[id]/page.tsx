@@ -13,6 +13,7 @@ import {
   Modal,
   ModalFooter,
   Select,
+  Switch,
 } from "@/components/ui";
 
 interface Member {
@@ -338,19 +339,12 @@ export default function AdminGroupDetailPage({
                       <span className="font-medium text-foreground text-sm">{deck.name}</span>
                       <span className="ml-2 text-xs text-muted">{deck._count.cards} cards</span>
                     </div>
-                    <button
-                      onClick={() => handleToggleMandatory(deck.id, deck.mandatory)}
-                      className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-full transition-colors cursor-pointer ${
-                        deck.mandatory
-                          ? "bg-primary/10 text-primary hover:bg-primary/20"
-                          : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-                      }`}
-                      title={deck.mandatory
-                        ? "Click to make visible only (students can add/remove)"
-                        : "Click to make mandatory (auto-added, cannot be removed)"}
-                    >
-                      {deck.mandatory ? "Mandatory" : "Visible"}
-                    </button>
+                    <Switch
+                      checked={deck.mandatory}
+                      onChange={() => handleToggleMandatory(deck.id, deck.mandatory)}
+                      leftLabel="Visible"
+                      rightLabel="Mandatory"
+                    />
                   </div>
                   <Button
                     variant="ghost"

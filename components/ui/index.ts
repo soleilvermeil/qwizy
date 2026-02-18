@@ -5,3 +5,4 @@ export { Modal, ModalFooter } from "./Modal";
 export { Select } from "./Select";
 export { Textarea } from "./Textarea";
 export { TokenFieldSelect } from "./TokenFieldSelect";
+export { Switch } from "./Switch";
