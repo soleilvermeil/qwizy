@@ -57,11 +57,14 @@ export function Modal({
 
   useEffect(() => {
     if (isOpen) {
+      modalRef.current?.focus();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
-
-      // Focus trap
-      modalRef.current?.focus();
     }
 
     return () => {
