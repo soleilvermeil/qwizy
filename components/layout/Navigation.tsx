@@ -28,7 +28,7 @@ export function Navigation({ items }: NavigationProps) {
                 key={item.href}
                 href={item.href}
                 className={`
-                  flex items-center gap-2 px-4 py-2 rounded-lg
+                  flex items-center gap-2 px-4 py-2 rounded-lg min-h-[44px]
                   transition-colors text-sm font-medium
                   ${isActive 
                     ? "bg-primary text-white" 
