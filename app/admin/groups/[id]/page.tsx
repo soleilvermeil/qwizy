@@ -14,6 +14,7 @@ import {
   ModalFooter,
   Select,
   Switch,
+  TokenFieldSelect,
 } from "@/components/ui";
 
 interface Member {
@@ -70,9 +71,7 @@ export default function AdminGroupDetailPage({
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
-  // Add member
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState("");
+  // Members (no modal needed — uses TokenFieldSelect inline)
 
   // Add deck
   const [showAddDeck, setShowAddDeck] = useState(false);
@@ -132,32 +131,29 @@ export default function AdminGroupDetailPage({
     }
   };
 
-  const handleAddMember = async () => {
-    if (!selectedUserId) return;
+  const handleMembersChange = async (newMemberIds: string[]) => {
+    if (!group) return;
+    const currentIds = new Set(group.members.map((m) => m.id));
+    const added = newMemberIds.filter((uid) => !currentIds.has(uid));
+    const removed = [...currentIds].filter((uid) => !newMemberIds.includes(uid));
     try {
-      await fetch(`/api/admin/groups/${id}/members`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userIds: [selectedUserId] }),
-      });
-      setShowAddMember(false);
-      setSelectedUserId("");
+      if (added.length > 0) {
+        await fetch(`/api/admin/groups/${id}/members`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: added }),
+        });
+      }
+      if (removed.length > 0) {
+        await fetch(`/api/admin/groups/${id}/members`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: removed }),
+        });
+      }
       fetchAll();
     } catch (err) {
-      console.error("Error adding member:", err);
-    }
-  };
-
-  const handleRemoveMember = async (userId: string) => {
-    try {
-      await fetch(`/api/admin/groups/${id}/members`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userIds: [userId] }),
-      });
-      fetchAll();
-    } catch (err) {
-      console.error("Error removing member:", err);
+      console.error("Error updating members:", err);
     }
   };
 
@@ -230,11 +226,6 @@ export default function AdminGroupDetailPage({
     return <p className="text-muted">Group not found</p>;
   }
 
-  const memberIds = new Set(group.members.map((m) => m.id));
-  const availableUsers = allUsers.filter(
-    (u) => !memberIds.has(u.id) && u.accountType === "EDUCATION"
-  );
-
   const assignedDeckIds = new Set(group.decks.map((d) => d.id));
   const availableDecks = allDecks.filter((d) => !assignedDeckIds.has(d.id));
 
@@ -283,37 +274,14 @@ export default function AdminGroupDetailPage({
           <CardDescription>{group.members.length} student{group.members.length !== 1 ? "s" : ""}</CardDescription>
         </CardHeader>
         <CardContent>
-          {group.members.length > 0 ? (
-            <div className="space-y-2 mb-4">
-              {group.members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary/30"
-                >
-                  <Link
-                    href={`/admin/users/${member.id}`}
-                    className="font-medium text-foreground hover:text-primary text-sm"
-                  >
-                    {member.username}
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveMember(member.id)}
-                  >
-                    <svg className="w-4 h-4 text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted mb-4">No members yet</p>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setShowAddMember(true)}>
-            Add Member
-          </Button>
+          <TokenFieldSelect
+            placeholder="Add a student..."
+            options={allUsers
+              .filter((u) => u.accountType === "EDUCATION")
+              .map((u) => ({ value: u.id, label: u.username }))}
+            value={group.members.map((m) => m.id)}
+            onChange={handleMembersChange}
+          />
         </CardContent>
       </Card>
 
@@ -404,23 +372,6 @@ export default function AdminGroupDetailPage({
           </CardContent>
         </Card>
       )}
-
-      {/* Add member modal */}
-      <Modal isOpen={showAddMember} onClose={() => setShowAddMember(false)} title="Add Member" size="sm">
-        <Select
-          label="Select User"
-          options={[
-            { value: "", label: "-- Select a user --" },
-            ...availableUsers.map((u) => ({ value: u.id, label: u.username })),
-          ]}
-          value={selectedUserId}
-          onChange={(e) => setSelectedUserId(e.target.value)}
-        />
-        <ModalFooter>
-          <Button variant="ghost" onClick={() => setShowAddMember(false)}>Cancel</Button>
-          <Button onClick={handleAddMember} disabled={!selectedUserId}>Add</Button>
-        </ModalFooter>
-      </Modal>
 
       {/* Add deck modal */}
       <Modal

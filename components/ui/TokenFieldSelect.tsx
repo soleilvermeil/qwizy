@@ -53,80 +53,75 @@ export function TokenFieldSelect({
           ${disabled ? "opacity-50 cursor-not-allowed bg-secondary" : ""}
         `}
       >
-        {/* Selected tokens */}
-        {value.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {value.map((val) => (
-              <span
-                key={val}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium"
-              >
-                {getLabel(val)}
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(val)}
-                    className="hover:text-error transition-colors"
-                    aria-label={`Remove ${getLabel(val)}`}
-                  >
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </button>
-                )}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Dropdown to add more */}
-        {availableOptions.length > 0 && !disabled && (
-          <div className="relative">
-            <select
-              value=""
-              onChange={(e) => handleAdd(e.target.value)}
-              className="w-full px-2 py-1 text-sm bg-transparent border border-border rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring text-muted appearance-none"
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {value.map((val) => (
+            <span
+              key={val}
+              className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-medium"
             >
-              <option value="" disabled>
-                {placeholder}
-              </option>
-              {availableOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-              <svg
-                className="w-3.5 h-3.5 text-muted"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-          </div>
-        )}
+              {getLabel(val)}
+              {!disabled && (
+                <button
+                  type="button"
+                  onClick={() => handleRemove(val)}
+                  className="hover:text-error transition-colors"
+                  aria-label={`Remove ${getLabel(val)}`}
+                >
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </span>
+          ))}
 
-        {/* Empty state when no options available and nothing selected */}
-        {value.length === 0 && availableOptions.length === 0 && (
-          <p className="text-sm text-muted">No fields available</p>
-        )}
+          {availableOptions.length > 0 && !disabled && (
+            <div className="relative inline-flex">
+              <select
+                value=""
+                onChange={(e) => handleAdd(e.target.value)}
+                className="pl-2 pr-6 py-0.5 text-xs bg-transparent border border-border rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring text-muted appearance-none"
+              >
+                <option value="" disabled>
+                  {placeholder}
+                </option>
+                {availableOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 flex items-center pr-1.5 pointer-events-none">
+                <svg
+                  className="w-3 h-3 text-muted"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            </div>
+          )}
+
+          {value.length === 0 && availableOptions.length === 0 && (
+            <p className="text-sm text-muted">No fields available</p>
+          )}
+        </div>
       </div>
     </div>
   );
