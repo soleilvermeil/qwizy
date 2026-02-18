@@ -17,11 +17,8 @@ export function Switch({
   disabled = false,
   id,
 }: SwitchProps) {
-  const inputId = id || `${leftLabel}-${rightLabel}`.toLowerCase().replace(/\s+/g, "-");
-
   return (
     <label
-      htmlFor={inputId}
       className={`relative inline-flex items-center gap-2 text-xs select-none ${
         disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
       }`}
@@ -30,7 +27,7 @@ export function Switch({
         {leftLabel}
       </span>
       <input
-        id={inputId}
+        id={id}
         type="checkbox"
         checked={checked}
         disabled={disabled}
