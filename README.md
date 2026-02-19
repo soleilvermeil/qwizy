@@ -6,7 +6,7 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
 
 - **Framework:** Next.js 16 (App Router) with React 19 and TypeScript
 - **Styling:** Tailwind CSS v4
-- **Database:** SQLite via Prisma + libSQL
+- **Database:** PostgreSQL via Prisma
 - **Auth:** JWT in httpOnly cookies (jose) with bcryptjs password hashing
 - **Spaced Repetition:** ts-fsrs
 
@@ -25,6 +25,7 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
 
 - Node.js (v20 or later recommended)
 - npm
+- PostgreSQL (v14 or later recommended)
 
 ## Getting Started
 
@@ -39,7 +40,7 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
    Copy the example below into a `.env` file at the project root:
 
    ```env
-   DATABASE_URL="file:./dev.db"
+   DATABASE_URL="postgresql://user:password@localhost:5432/open_duolingo"
    JWT_SECRET="change-this-to-a-secure-random-string-in-production"
 
    # Optional: Legal pages (Legal Notice, Privacy Policy). Fall back to placeholders if unset.
@@ -107,7 +108,7 @@ middleware.ts   # Auth and route protection middleware
 
 | Variable | Description | Default |
 |---|---|---|
-| `DATABASE_URL` | Database connection URL | `file:./dev.db` |
+| `DATABASE_URL` | PostgreSQL connection URL | Must be set |
 | `JWT_SECRET` | Secret key for signing JWT tokens | Must be set for production |
 | `NODE_ENV` | Node environment (`development` / `production`) | `development` |
 | `LEGAL_PUBLISHER_NAME` | Publisher / data controller name. Used in Legal Notice & Privacy Policy. | `[Your Name or Organization]` |
