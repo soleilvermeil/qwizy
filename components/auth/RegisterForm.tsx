@@ -12,6 +12,7 @@ export function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +75,8 @@ export function RegisterForm() {
         minLength={6}
         autoComplete="new-password"
         helperText="At least 6 characters"
+        showPassword={showPassword}
+        onTogglePassword={() => setShowPassword((v) => !v)}
       />
 
       <Input
@@ -84,6 +87,8 @@ export function RegisterForm() {
         placeholder="Confirm your password"
         required
         autoComplete="new-password"
+        showPassword={showPassword}
+        onTogglePassword={() => setShowPassword((v) => !v)}
       />
 
       {error && (

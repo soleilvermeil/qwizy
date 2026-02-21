@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
+  const [showChangePasswords, setShowChangePasswords] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -460,6 +461,8 @@ export default function SettingsPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
               autoComplete="current-password"
+              showPassword={showChangePasswords}
+              onTogglePassword={() => setShowChangePasswords((v) => !v)}
             />
             <Input
               label="New Password"
@@ -469,6 +472,8 @@ export default function SettingsPage() {
               placeholder="Enter new password"
               autoComplete="new-password"
               helperText="At least 6 characters"
+              showPassword={showChangePasswords}
+              onTogglePassword={() => setShowChangePasswords((v) => !v)}
             />
             <Input
               label="Confirm New Password"
@@ -477,6 +482,8 @@ export default function SettingsPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               autoComplete="new-password"
+              showPassword={showChangePasswords}
+              onTogglePassword={() => setShowChangePasswords((v) => !v)}
             />
             <Button type="submit" isLoading={isSavingPassword}>
               Change Password

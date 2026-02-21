@@ -10,6 +10,7 @@ export default function ChangePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +75,8 @@ export default function ChangePasswordPage() {
                 autoComplete="new-password"
                 helperText="At least 6 characters"
                 autoFocus
+                showPassword={showPassword}
+                onTogglePassword={() => setShowPassword((v) => !v)}
               />
 
               <Input
@@ -83,6 +86,8 @@ export default function ChangePasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
                 autoComplete="new-password"
+                showPassword={showPassword}
+                onTogglePassword={() => setShowPassword((v) => !v)}
               />
 
               <Button type="submit" isLoading={isLoading} fullWidth>

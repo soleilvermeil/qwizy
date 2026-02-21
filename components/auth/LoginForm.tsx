@@ -73,7 +73,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Enter your password"
         autoComplete="current-password"
-        helperText="Leave empty for passwordless admin"
+        helperText=""
       />
 
       {error && (
