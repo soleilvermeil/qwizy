@@ -72,6 +72,10 @@ export async function getPiperStoredVoices(): Promise<string[]> {
 }
 
 export async function clearPiperVoices(): Promise<void> {
-  const { flush } = await import("@mintplex-labs/piper-tts-web");
-  await flush();
+  try {
+    const root = await navigator.storage.getDirectory();
+    await root.removeEntry("piper", { recursive: true });
+  } catch {
+    // directory may not exist yet — nothing to clear
+  }
 }
