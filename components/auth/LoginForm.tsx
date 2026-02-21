@@ -13,6 +13,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [publicComputer, setPublicComputer] = useState(true);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +28,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, rememberMe: !publicComputer }),
       });
 
       const data = await response.json();
@@ -73,8 +74,17 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Enter your password"
         autoComplete="current-password"
-        helperText=""
       />
+
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={publicComputer}
+          onChange={(e) => setPublicComputer(e.target.checked)}
+          className="accent-primary w-4 h-4 min-h-0 cursor-pointer"
+        />
+        <span className="text-sm text-muted">This is a public computer</span>
+      </label>
 
       {error && (
         <div className="p-3 rounded-lg bg-error/10 text-error text-sm">
