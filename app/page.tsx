@@ -33,7 +33,7 @@ export default async function Home() {
               </svg>
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-              Open Duolingo
+              Qwizy!
             </h1>
             <p className="text-lg text-muted">
               Master anything with spaced repetition flashcards

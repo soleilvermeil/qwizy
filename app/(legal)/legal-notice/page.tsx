@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { legalConfig } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Legal Notice - Open Duolingo",
-  description: "Legal notice and publisher information for Open Duolingo",
+  title: "Legal Notice - Qwizy!",
+  description: "Legal notice and publisher information for Qwizy!",
 };
 
 export default function LegalNoticePage() {
@@ -109,11 +109,8 @@ export default function LegalNoticePage() {
           Intellectual Property
         </h2>
         <p className="text-muted-foreground leading-relaxed">
-          Open Duolingo is an open-source project. The source code is available
-          under the terms of its open-source license. The name
-          &quot;Duolingo&quot; is a registered trademark of Duolingo, Inc. This
-          project is not affiliated with, endorsed by, or sponsored by Duolingo,
-          Inc.
+          Qwizy! is an open-source project. The source code is available
+          under the terms of its open-source license.
         </p>
         <p className="text-muted-foreground leading-relaxed">
           The structure, layout, and original content of this website are

@@ -3,9 +3,9 @@ import Link from "next/link";
 import { legalConfig } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - Open Duolingo",
+  title: "Privacy Policy - Qwizy!",
   description:
-    "Privacy policy detailing how Open Duolingo collects, uses, and protects your personal data",
+    "Privacy policy detailing how Qwizy! collects, uses, and protects your personal data",
 };
 
 export default function PrivacyPolicyPage() {
@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Introduction</h2>
         <p className="text-muted-foreground leading-relaxed">
-          This privacy policy explains how Open Duolingo (&quot;the
+          This privacy policy explains how Qwizy! (&quot;the
           Service&quot;, &quot;we&quot;, &quot;us&quot;) collects, uses, and
           protects your personal data when you use our website. We are committed
           to protecting your privacy and processing your data in compliance with

@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Open Duolingo - Flashcard Learning",
+  title: "Qwizy! - Flashcard Learning",
   description: "Learn with spaced repetition flashcards",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Open Duolingo",
+    title: "Qwizy!",
   },
 };
 

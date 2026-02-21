@@ -145,7 +145,7 @@ export default function SettingsPage() {
       // Extract filename from Content-Disposition header or use default
       const disposition = response.headers.get("Content-Disposition");
       const filenameMatch = disposition?.match(/filename="(.+)"/);
-      a.download = filenameMatch?.[1] ?? "open-duolingo-data-export.json";
+      a.download = filenameMatch?.[1] ?? "qwizy-data-export.json";
 
       document.body.appendChild(a);
       a.click();

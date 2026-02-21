@@ -1,6 +1,6 @@
-# Open Duolingo
+# Qwizy!
 
-A self-hosted, open-source spaced repetition learning app inspired by Duolingo. Build and manage your own flashcard decks with configurable question types, track your progress, and learn efficiently using the FSRS algorithm.
+A self-hosted, open-source spaced repetition learning app. Build and manage your own flashcard decks with configurable question types, track your progress, and learn efficiently using the FSRS algorithm.
 
 ## Tech Stack
 
@@ -40,7 +40,7 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
    Copy the example below into a `.env` file at the project root:
 
    ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/open_duolingo"
+   DATABASE_URL="postgresql://user:password@localhost:5432/qwizy"
    JWT_SECRET="change-this-to-a-secure-random-string-in-production"
 
    # Optional: Legal pages (Legal Notice, Privacy Policy). Fall back to placeholders if unset.
