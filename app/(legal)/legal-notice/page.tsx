@@ -72,6 +72,37 @@ export default function LegalNoticePage() {
         </div>
       </section>
 
+      {/* Database Hosting Provider */}
+      {legalConfig.dbHostName && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-foreground">
+            Database Hosting Provider
+          </h2>
+          <div className="bg-secondary rounded-xl p-4 space-y-2 text-sm">
+            <p>
+              <span className="font-medium text-foreground">Host:</span>{" "}
+              <span className="text-warning">{legalConfig.dbHostName}</span>
+            </p>
+            {legalConfig.dbHostAddress && (
+              <p>
+                <span className="font-medium text-foreground">Address:</span>{" "}
+                <span className="text-warning">
+                  {legalConfig.dbHostAddress}
+                </span>
+              </p>
+            )}
+            {legalConfig.dbHostWebsite && (
+              <p>
+                <span className="font-medium text-foreground">Website:</span>{" "}
+                <span className="text-warning">
+                  {legalConfig.dbHostWebsite}
+                </span>
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Intellectual Property */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">

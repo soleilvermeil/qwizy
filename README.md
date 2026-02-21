@@ -52,6 +52,9 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
    # LEGAL_HOST_NAME="Hosting Provider Name"
    # LEGAL_HOST_ADDRESS="Hosting Provider Postal Address"
    # LEGAL_HOST_WEBSITE="https://hosting-provider.example.com"
+   # LEGAL_DB_HOST_NAME="Database Hosting Provider Name"
+   # LEGAL_DB_HOST_ADDRESS="Database Hosting Provider Postal Address"
+   # LEGAL_DB_HOST_WEBSITE="https://db-hosting-provider.example.com"
    # LEGAL_LAST_UPDATED="February 2026"
    ```
 
@@ -119,4 +122,7 @@ middleware.ts   # Auth and route protection middleware
 | `LEGAL_HOST_NAME` | Hosting provider name (Legal Notice only) | `[Hosting Provider Name]` |
 | `LEGAL_HOST_ADDRESS` | Hosting provider address (Legal Notice only) | `[Hosting Provider Postal Address]` |
 | `LEGAL_HOST_WEBSITE` | Hosting provider website (Legal Notice only) | `[https://hosting-provider.example.com]` |
+| `LEGAL_DB_HOST_NAME` | Database hosting provider name. When set, a separate "Database Hosting Provider" section appears in Legal Notice and Privacy Policy. | *(empty — hidden if unset)* |
+| `LEGAL_DB_HOST_ADDRESS` | Database hosting provider address | *(empty)* |
+| `LEGAL_DB_HOST_WEBSITE` | Database hosting provider website | *(empty)* |
 | `LEGAL_LAST_UPDATED` | Last updated date shown on legal pages | `February 2026` |
