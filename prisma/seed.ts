@@ -18,6 +18,7 @@ async function main() {
       username: "admin",
       passwordHash: null,
       isAdmin: true,
+      mustChangePassword: true,
       newCardsPerDay: 20,
     },
   });
