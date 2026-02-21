@@ -45,10 +45,10 @@ export default function LegalNoticePage() {
             <span className="text-warning">{legalConfig.publisherDirector}</span>
           </p>
         </div>
-        <p className="text-xs text-muted italic">
+        {/* <p className="text-xs text-muted italic">
           If you are self-hosting this application, replace the placeholders
           above with your own information.
-        </p>
+        </p> */}
       </section>
 
       {/* Hosting Provider */}

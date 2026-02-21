@@ -68,7 +68,7 @@ export function RegisterForm() {
         minLength={3}
         autoComplete="username"
         autoFocus
-        helperText="At least 3 characters, letters, numbers, _ and - only"
+        helperText="At least 3 characters"
       />
 
       <Input

@@ -52,10 +52,10 @@ export default function PrivacyPolicyPage() {
             <span className="text-warning">{legalConfig.publisherAddress}</span>
           </p>
         </div>
-        <p className="text-xs text-muted italic">
+        {/* <p className="text-xs text-muted italic">
           If you are self-hosting this application, you are the data controller
           and must replace the placeholders above with your own information.
-        </p>
+        </p> */}
       </section>
 
       {/* Data Collected */}
