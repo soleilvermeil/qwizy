@@ -110,6 +110,15 @@ export default function LegalNoticePage() {
         </h2>
         <p className="text-muted-foreground leading-relaxed">
           Qwizy! is an open-source project. The source code is available
+          on{" "}
+          <a
+            href="https://github.com/soleilvermeil/qwizy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:text-primary-hover underline"
+          >
+            GitHub
+          </a>{" "}
           under the terms of its open-source license.
         </p>
         <p className="text-muted-foreground leading-relaxed">
