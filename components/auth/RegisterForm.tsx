@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, Checkbox } from "@/components/ui";
 
 export function RegisterForm() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +24,11 @@ export function RegisterForm() {
       return;
     }
 
+    if (!acceptedLegal) {
+      setError("You must accept the Privacy Policy and Legal Notice to register");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -31,7 +37,7 @@ export function RegisterForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password, confirmPassword }),
+        body: JSON.stringify({ username, password, confirmPassword, acceptedLegal }),
       });
 
       const data = await response.json();
@@ -90,6 +96,28 @@ export function RegisterForm() {
         showPassword={showPassword}
         onTogglePassword={() => setShowPassword((v) => !v)}
       />
+
+      <Checkbox
+        checked={acceptedLegal}
+        onChange={setAcceptedLegal}
+      >
+        I have read and accept the{" "}
+        <Link
+          href="/privacy-policy"
+          target="_blank"
+          className="text-primary hover:text-primary-hover font-medium"
+        >
+          Privacy Policy
+        </Link>{" "}
+        and{" "}
+        <Link
+          href="/legal-notice"
+          target="_blank"
+          className="text-primary hover:text-primary-hover font-medium"
+        >
+          Legal Notice
+        </Link>
+      </Checkbox>
 
       {error && (
         <div className="p-3 rounded-lg bg-error/10 text-error text-sm">

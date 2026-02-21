@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, Checkbox } from "@/components/ui";
 
 interface LoginFormProps {
   redirectTo?: string;
@@ -76,15 +76,12 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         autoComplete="current-password"
       />
 
-      <label className="flex items-center gap-2 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={publicComputer}
-          onChange={(e) => setPublicComputer(e.target.checked)}
-          className="accent-primary w-4 h-4 min-h-0 cursor-pointer"
-        />
-        <span className="text-sm text-muted">This is a public computer</span>
-      </label>
+      <Checkbox
+        checked={publicComputer}
+        onChange={setPublicComputer}
+      >
+        This is a public computer
+      </Checkbox>
 
       {error && (
         <div className="p-3 rounded-lg bg-error/10 text-error text-sm">

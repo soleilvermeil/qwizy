@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getSessionFromRequest, updateSession } from "./lib/session";
 
 // Routes that don't require authentication
-const publicRoutes = ["/", "/login", "/register"];
+const publicRoutes = ["/", "/login", "/register", "/privacy-policy", "/legal-notice"];
 
 // Routes that require admin access
 const adminRoutes = ["/admin"];
