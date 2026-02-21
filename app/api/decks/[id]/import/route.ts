@@ -55,7 +55,7 @@ export async function POST(
       where: { deckId: id },
       _max: { position: true },
     });
-    let nextPosition = (maxPositionResult._max.position ?? -1) + 1;
+    const nextPosition = (maxPositionResult._max.position ?? -1) + 1;
 
     // Validate field IDs
     const validFieldIds = new Set(deck.fields.map((f) => f.id));
