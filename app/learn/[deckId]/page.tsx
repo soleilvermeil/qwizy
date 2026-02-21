@@ -3,6 +3,7 @@
 import { useState, useEffect, use, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button, Card, CardContent } from "@/components/ui";
 import { FlashCard, ProgressBar, SessionSummary, TeachCard } from "@/components/user";
 import type { TtsPlayback } from "@/components/user/FlashCard";
@@ -493,35 +494,45 @@ export default function LearnPage({ params }: PageProps) {
         )}
 
         {/* Card -- TeachCard for explanations, FlashCard for questions */}
-        {isExplanation ? (
-          <TeachCard
-            front={frontValue}
-            back={backValue}
-            frontLabel={showField?.name || "Front"}
-            backLabel={askField?.name || "Back"}
-            onContinue={handleContinueExplanation}
-            showTts={showTtsPlayback}
-            askTts={askTtsPlayback}
-            showHints={showHintsResolved}
-            askHints={askHintsResolved}
-          />
-        ) : (
-          <FlashCard
-            front={frontValue}
-            back={backValue}
-            frontLabel={showField?.name || "Front"}
-            backLabel={askField?.name || "Back"}
-            onRate={handleRate}
-            isLoading={isSubmitting}
-            intervalPreviews={intervalPreviews}
-            showTts={showTtsPlayback}
-            askTts={askTtsPlayback}
-            showHints={showHintsResolved}
-            askHints={askHintsResolved}
-            quizMode={deck.mode === "QUIZ"}
-            distractors={currentItem.question.distractors}
-          />
-        )}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${itemData.cardId}-${itemData.showFieldId}-${itemData.askFieldId}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+          >
+            {isExplanation ? (
+              <TeachCard
+                front={frontValue}
+                back={backValue}
+                frontLabel={showField?.name || "Front"}
+                backLabel={askField?.name || "Back"}
+                onContinue={handleContinueExplanation}
+                showTts={showTtsPlayback}
+                askTts={askTtsPlayback}
+                showHints={showHintsResolved}
+                askHints={askHintsResolved}
+              />
+            ) : (
+              <FlashCard
+                front={frontValue}
+                back={backValue}
+                frontLabel={showField?.name || "Front"}
+                backLabel={askField?.name || "Back"}
+                onRate={handleRate}
+                isLoading={isSubmitting}
+                intervalPreviews={intervalPreviews}
+                showTts={showTtsPlayback}
+                askTts={askTtsPlayback}
+                showHints={showHintsResolved}
+                askHints={askHintsResolved}
+                quizMode={deck.mode === "QUIZ"}
+                distractors={currentItem.question.distractors}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
