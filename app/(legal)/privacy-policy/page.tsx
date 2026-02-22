@@ -3,9 +3,9 @@ import Link from "next/link";
 import { legalConfig } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - Open Duolingo",
+  title: "Privacy Policy - Qwizy!",
   description:
-    "Privacy policy detailing how Open Duolingo collects, uses, and protects your personal data",
+    "Privacy policy detailing how Qwizy! collects, uses, and protects your personal data",
 };
 
 export default function PrivacyPolicyPage() {
@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Introduction</h2>
         <p className="text-muted-foreground leading-relaxed">
-          This privacy policy explains how Open Duolingo (&quot;the
+          This privacy policy explains how Qwizy! (&quot;the
           Service&quot;, &quot;we&quot;, &quot;us&quot;) collects, uses, and
           protects your personal data when you use our website. We are committed
           to protecting your privacy and processing your data in compliance with
@@ -52,10 +52,10 @@ export default function PrivacyPolicyPage() {
             <span className="text-warning">{legalConfig.publisherAddress}</span>
           </p>
         </div>
-        <p className="text-xs text-muted italic">
+        {/* <p className="text-xs text-muted italic">
           If you are self-hosting this application, you are the data controller
           and must replace the placeholders above with your own information.
-        </p>
+        </p> */}
       </section>
 
       {/* Data Collected */}
@@ -269,6 +269,37 @@ export default function PrivacyPolicyPage() {
         <h2 className="text-xl font-semibold text-foreground">
           Third-Party Connections
         </h2>
+
+        {legalConfig.dbHostName && (
+          <>
+            <p className="text-muted-foreground leading-relaxed">
+              The database that stores all user data is hosted by a third-party
+              provider. This provider acts as a data processor and receives all
+              personal data described in this policy.
+            </p>
+            <div className="bg-secondary rounded-xl p-4 space-y-2 text-sm">
+              <p>
+                <span className="font-medium text-foreground">
+                  Database host:
+                </span>{" "}
+                {legalConfig.dbHostName}
+              </p>
+              {legalConfig.dbHostAddress && (
+                <p>
+                  <span className="font-medium text-foreground">Address:</span>{" "}
+                  {legalConfig.dbHostAddress}
+                </p>
+              )}
+              {legalConfig.dbHostWebsite && (
+                <p>
+                  <span className="font-medium text-foreground">Website:</span>{" "}
+                  {legalConfig.dbHostWebsite}
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
         <p className="text-muted-foreground leading-relaxed">
           When the high-quality voice option (Piper) is enabled, your browser
           downloads AI voice model files directly from the following third-party
@@ -349,8 +380,9 @@ export default function PrivacyPolicyPage() {
         </h2>
         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
           <li>
-            All data is stored in a local database on the server hosting the
-            application
+            All data is stored in a PostgreSQL database. Depending on the
+            deployment, the database may be hosted on the same server as the
+            application or by a separate database hosting provider
           </li>
           <li>
             Passwords are hashed using bcrypt (12 salt rounds) and cannot be
@@ -375,10 +407,14 @@ export default function PrivacyPolicyPage() {
         <p className="text-muted-foreground leading-relaxed">
           We do not share, sell, or transfer your personal data to any third
           party. Your data is only accessible to the instance administrator(s)
-          who operate the Service. No data is transferred outside of the
-          European Economic Area (EEA) unless the hosting infrastructure is
-          located outside the EEA, in which case the data controller is
-          responsible for ensuring appropriate safeguards.
+          who operate the Service. When the database is hosted by a separate
+          provider, your personal data is transmitted between the application
+          server and the database server; in such cases, the database hosting
+          provider acts as a data processor. No data is transferred outside of
+          the European Economic Area (EEA) unless the hosting or database
+          infrastructure is located outside the EEA, in which case the data
+          controller is responsible for ensuring appropriate safeguards (such as
+          Standard Contractual Clauses or an adequacy decision).
         </p>
       </section>
 

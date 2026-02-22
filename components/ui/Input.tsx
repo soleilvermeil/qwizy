@@ -1,30 +1,60 @@
 "use client";
 
-import { forwardRef, InputHTMLAttributes } from "react";
+import { forwardRef, InputHTMLAttributes, useState } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helperText?: string;
+  showPassword?: boolean;
+  onTogglePassword?: () => void;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, className = "", id, ...props }, ref) => {
+  ({ label, error, helperText, className = "", id, type, showPassword: controlledShow, onTogglePassword, ...props }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, "-");
+    const [internalShow, setInternalShow] = useState(false);
+
+    const isPassword = type === "password";
+    const isControlled = controlledShow !== undefined;
+    const passwordVisible = isControlled ? controlledShow : internalShow;
+
+    const handleToggle = () => {
+      if (onTogglePassword) {
+        onTogglePassword();
+      } else {
+        setInternalShow((v) => !v);
+      }
+    };
 
     return (
       <div className="w-full">
-        {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium text-foreground mb-1.5"
-          >
-            {label}
-          </label>
+        {(label || isPassword) && (
+          <div className="flex items-center justify-between mb-1.5">
+            {label && (
+              <label
+                htmlFor={inputId}
+                className="text-sm font-medium text-foreground"
+              >
+                {label}
+              </label>
+            )}
+            {isPassword && (
+              <button
+                type="button"
+                onClick={handleToggle}
+                className="text-xs text-muted hover:text-foreground transition-colors cursor-pointer ml-auto min-h-0"
+                tabIndex={-1}
+              >
+                {passwordVisible ? "Hide password" : "Show password"}
+              </button>
+            )}
+          </div>
         )}
         <input
           ref={ref}
           id={inputId}
+          type={isPassword && passwordVisible ? "text" : type}
           className={`
             w-full px-4 py-2.5 min-h-[44px]
             bg-input-bg text-foreground

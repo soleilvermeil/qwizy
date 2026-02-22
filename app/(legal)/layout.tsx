@@ -14,7 +14,7 @@ export default function LegalLayout({
             href="/"
             className="text-primary hover:text-primary-hover transition-colors font-medium"
           >
-            &larr; Back to Open Duolingo
+            &larr; Back to Qwizy!
           </Link>
         </div>
         <article className="prose-legal space-y-8">{children}</article>

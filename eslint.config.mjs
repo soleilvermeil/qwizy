@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored WASM binaries (not our code)
+    "public/ort-wasm/**",
+    // Node.js build scripts (CommonJS)
+    "scripts/**",
   ]),
 ]);
 

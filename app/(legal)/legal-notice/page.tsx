@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { legalConfig } from "@/lib/legal";
 
 export const metadata: Metadata = {
-  title: "Legal Notice - Open Duolingo",
-  description: "Legal notice and publisher information for Open Duolingo",
+  title: "Legal Notice - Qwizy!",
+  description: "Legal notice and publisher information for Qwizy!",
 };
 
 export default function LegalNoticePage() {
@@ -45,10 +45,10 @@ export default function LegalNoticePage() {
             <span className="text-warning">{legalConfig.publisherDirector}</span>
           </p>
         </div>
-        <p className="text-xs text-muted italic">
+        {/* <p className="text-xs text-muted italic">
           If you are self-hosting this application, replace the placeholders
           above with your own information.
-        </p>
+        </p> */}
       </section>
 
       {/* Hosting Provider */}
@@ -72,17 +72,54 @@ export default function LegalNoticePage() {
         </div>
       </section>
 
+      {/* Database Hosting Provider */}
+      {legalConfig.dbHostName && (
+        <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-foreground">
+            Database Hosting Provider
+          </h2>
+          <div className="bg-secondary rounded-xl p-4 space-y-2 text-sm">
+            <p>
+              <span className="font-medium text-foreground">Host:</span>{" "}
+              <span className="text-warning">{legalConfig.dbHostName}</span>
+            </p>
+            {legalConfig.dbHostAddress && (
+              <p>
+                <span className="font-medium text-foreground">Address:</span>{" "}
+                <span className="text-warning">
+                  {legalConfig.dbHostAddress}
+                </span>
+              </p>
+            )}
+            {legalConfig.dbHostWebsite && (
+              <p>
+                <span className="font-medium text-foreground">Website:</span>{" "}
+                <span className="text-warning">
+                  {legalConfig.dbHostWebsite}
+                </span>
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Intellectual Property */}
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">
           Intellectual Property
         </h2>
         <p className="text-muted-foreground leading-relaxed">
-          Open Duolingo is an open-source project. The source code is available
-          under the terms of its open-source license. The name
-          &quot;Duolingo&quot; is a registered trademark of Duolingo, Inc. This
-          project is not affiliated with, endorsed by, or sponsored by Duolingo,
-          Inc.
+          Qwizy! is an open-source project. The source code is available
+          on{" "}
+          <a
+            href="https://github.com/soleilvermeil/qwizy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:text-primary-hover underline"
+          >
+            GitHub
+          </a>{" "}
+          under the terms of its open-source license.
         </p>
         <p className="text-muted-foreground leading-relaxed">
           The structure, layout, and original content of this website are

@@ -55,39 +55,47 @@ export async function POST(
       where: { deckId: id },
       _max: { position: true },
     });
-    let nextPosition = (maxPositionResult._max.position ?? -1) + 1;
+    const nextPosition = (maxPositionResult._max.position ?? -1) + 1;
 
     // Validate field IDs
     const validFieldIds = new Set(deck.fields.map((f) => f.id));
 
-    // Create cards in a transaction
-    const createdCards = await prisma.$transaction(
-      cards.map((cardData: CardData) => {
-        const position = nextPosition++;
-        return prisma.card.create({
-          data: {
-            deckId: id,
-            position,
-            tags: cardData.tags || "",
-            values: {
-              create: cardData.values
-                .filter(
-                  (v) => validFieldIds.has(v.fieldId) && v.value.trim() !== ""
-                )
-                .map((v) => ({
-                  fieldId: v.fieldId,
-                  value: v.value.trim(),
-                })),
-            },
-          },
-        });
-      })
-    );
+    const importedCount = await prisma.$transaction(async (tx) => {
+      // Bulk-create all cards in a single INSERT
+      const createdCards = await tx.card.createManyAndReturn({
+        data: cards.map((cardData: CardData, i: number) => ({
+          deckId: id,
+          position: nextPosition + i,
+          tags: cardData.tags || "",
+        })),
+        select: { id: true },
+      });
+
+      // Build all card values in one flat array, then bulk-insert
+      const allValues = createdCards.flatMap((card, i) =>
+        (cards[i] as CardData).values
+          .filter(
+            (v: CardData["values"][number]) =>
+              validFieldIds.has(v.fieldId) && v.value.trim() !== ""
+          )
+          .map((v: CardData["values"][number]) => ({
+            cardId: card.id,
+            fieldId: v.fieldId,
+            value: v.value.trim(),
+          }))
+      );
+
+      if (allValues.length > 0) {
+        await tx.cardValue.createMany({ data: allValues });
+      }
+
+      return createdCards.length;
+    }, { timeout: 60000 });
 
     return NextResponse.json(
       {
         success: true,
-        imported: createdCards.length,
+        imported: importedCount,
       },
       { status: 201 }
     );

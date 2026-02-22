@@ -5,7 +5,7 @@ import { createSession } from "@/lib/session";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, rememberMe } = body;
 
     if (!username) {
       return NextResponse.json(
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       isAdmin: user.isAdmin,
       accountType: user.accountType,
       mustChangePassword: user.mustChangePassword,
+      rememberMe: !!rememberMe,
     });
 
     return NextResponse.json({

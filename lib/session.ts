@@ -6,13 +6,16 @@ const SECRET_KEY = process.env.JWT_SECRET || "your-secret-key-change-in-producti
 const key = new TextEncoder().encode(SECRET_KEY);
 
 const COOKIE_NAME = "session";
-const COOKIE_OPTIONS = {
+
+const baseCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
   path: "/",
-  maxAge: 60 * 60 * 24 * 7, // 7 days
 };
+
+const SESSION_DURATION_LONG = 60 * 60 * 24 * 7; // 7 days (seconds)
+const SESSION_DURATION_SHORT = 60 * 60;          // 1 hour  (seconds)
 
 export interface SessionPayload {
   userId: string;
@@ -20,14 +23,16 @@ export interface SessionPayload {
   isAdmin: boolean;
   accountType: string;
   mustChangePassword: boolean;
+  rememberMe: boolean;
   expiresAt: Date;
 }
 
 export async function encrypt(payload: SessionPayload): Promise<string> {
+  const ttl = payload.rememberMe ? "7d" : "1h";
   return new SignJWT({ ...payload, expiresAt: payload.expiresAt.toISOString() })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime(ttl)
     .sign(key);
 }
 
@@ -43,6 +48,7 @@ export async function decrypt(token: string): Promise<SessionPayload | null> {
       isAdmin: payload.isAdmin as boolean,
       accountType: (payload.accountType as string) || "PERSONAL",
       mustChangePassword: (payload.mustChangePassword as boolean) || false,
+      rememberMe: (payload.rememberMe as boolean) ?? true,
       expiresAt: new Date(payload.expiresAt as string),
     };
   } catch {
@@ -56,21 +62,30 @@ export async function createSession(user: {
   isAdmin: boolean;
   accountType?: string;
   mustChangePassword?: boolean;
+  rememberMe?: boolean;
 }): Promise<void> {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const rememberMe = user.rememberMe ?? false;
+  const durationMs = (rememberMe ? SESSION_DURATION_LONG : SESSION_DURATION_SHORT) * 1000;
+  const expiresAt = new Date(Date.now() + durationMs);
+
   const session: SessionPayload = {
     userId: user.id,
     username: user.username,
     isAdmin: user.isAdmin,
     accountType: user.accountType || "PERSONAL",
     mustChangePassword: user.mustChangePassword || false,
+    rememberMe,
     expiresAt,
   };
 
   const token = await encrypt(session);
   const cookieStore = await cookies();
-  
-  cookieStore.set(COOKIE_NAME, token, COOKIE_OPTIONS);
+
+  const cookieOptions = rememberMe
+    ? { ...baseCookieOptions, maxAge: SESSION_DURATION_LONG }
+    : baseCookieOptions;
+
+  cookieStore.set(COOKIE_NAME, token, cookieOptions);
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
@@ -101,17 +116,22 @@ export async function updateSession(request: NextRequest): Promise<NextResponse 
     return null;
   }
 
+  // Only refresh remembered (long-lived) sessions
+  if (!session.rememberMe) {
+    return null;
+  }
+
   // Refresh the session if it's about to expire (less than 1 day left)
   const now = new Date();
   const expiresAt = new Date(session.expiresAt);
   const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
   if (expiresAt < oneDayFromNow) {
-    session.expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    session.expiresAt = new Date(Date.now() + SESSION_DURATION_LONG * 1000);
     const newToken = await encrypt(session);
     
     const response = NextResponse.next();
-    response.cookies.set(COOKIE_NAME, newToken, COOKIE_OPTIONS);
+    response.cookies.set(COOKIE_NAME, newToken, { ...baseCookieOptions, maxAge: SESSION_DURATION_LONG });
     return response;
   }
 

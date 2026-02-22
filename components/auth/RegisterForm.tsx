@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, Checkbox } from "@/components/ui";
 
 export function RegisterForm() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +21,11 @@ export function RegisterForm() {
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      return;
+    }
+
+    if (!acceptedLegal) {
+      setError("You must accept the Privacy Policy and Legal Notice to register");
       return;
     }
 
@@ -30,7 +37,7 @@ export function RegisterForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password, confirmPassword }),
+        body: JSON.stringify({ username, password, confirmPassword, acceptedLegal }),
       });
 
       const data = await response.json();
@@ -61,7 +68,7 @@ export function RegisterForm() {
         minLength={3}
         autoComplete="username"
         autoFocus
-        helperText="At least 3 characters, letters, numbers, _ and - only"
+        helperText="At least 3 characters"
       />
 
       <Input
@@ -74,6 +81,8 @@ export function RegisterForm() {
         minLength={6}
         autoComplete="new-password"
         helperText="At least 6 characters"
+        showPassword={showPassword}
+        onTogglePassword={() => setShowPassword((v) => !v)}
       />
 
       <Input
@@ -84,7 +93,31 @@ export function RegisterForm() {
         placeholder="Confirm your password"
         required
         autoComplete="new-password"
+        showPassword={showPassword}
+        onTogglePassword={() => setShowPassword((v) => !v)}
       />
+
+      <Checkbox
+        checked={acceptedLegal}
+        onChange={setAcceptedLegal}
+      >
+        I have read and accept the{" "}
+        <Link
+          href="/privacy-policy"
+          target="_blank"
+          className="text-primary hover:text-primary-hover font-medium"
+        >
+          Privacy Policy
+        </Link>{" "}
+        and{" "}
+        <Link
+          href="/legal-notice"
+          target="_blank"
+          className="text-primary hover:text-primary-hover font-medium"
+        >
+          Legal Notice
+        </Link>
+      </Checkbox>
 
       {error && (
         <div className="p-3 rounded-lg bg-error/10 text-error text-sm">

@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
+  const [showChangePasswords, setShowChangePasswords] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -44,6 +45,7 @@ export default function SettingsPage() {
   const [ttsEngine, setTtsEngineState] = useState<"browser" | "piper">("browser");
   const [cachedVoiceCount, setCachedVoiceCount] = useState(0);
   const [isClearing, setIsClearing] = useState(false);
+  const [piperMayFallback, setPiperMayFallback] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -66,6 +68,7 @@ export default function SettingsPage() {
   // Sync TTS engine preference and cached voice count from client-side state
   useEffect(() => {
     setTtsEngineState(getTtsEngine());
+    setPiperMayFallback(typeof SharedArrayBuffer === "undefined");
     import("@/lib/tts-piper")
       .then(({ getPiperStoredVoices }) => getPiperStoredVoices())
       .then((voices) => setCachedVoiceCount(voices.length))
@@ -142,7 +145,7 @@ export default function SettingsPage() {
       // Extract filename from Content-Disposition header or use default
       const disposition = response.headers.get("Content-Disposition");
       const filenameMatch = disposition?.match(/filename="(.+)"/);
-      a.download = filenameMatch?.[1] ?? "open-duolingo-data-export.json";
+      a.download = filenameMatch?.[1] ?? "qwizy-data-export.json";
 
       document.body.appendChild(a);
       a.click();
@@ -371,6 +374,13 @@ export default function SettingsPage() {
               {/* Piper details panel (shown when piper is selected) */}
               {ttsEngine === "piper" && (
                 <div className="rounded-lg border border-border p-4 space-y-4">
+                  {piperMayFallback && (
+                    <div className="rounded-lg bg-error/10 p-3">
+                      <p className="text-sm text-foreground">
+                        Your browser may not fully support the AI voice engine. If high-quality playback fails, your browser&apos;s built-in voice will be used automatically.
+                      </p>
+                    </div>
+                  )}
                   {/* Cache info & clear button */}
                   <div className="space-y-3">
                     <p className="text-sm text-muted-foreground">
@@ -451,6 +461,8 @@ export default function SettingsPage() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
               autoComplete="current-password"
+              showPassword={showChangePasswords}
+              onTogglePassword={() => setShowChangePasswords((v) => !v)}
             />
             <Input
               label="New Password"
@@ -460,6 +472,8 @@ export default function SettingsPage() {
               placeholder="Enter new password"
               autoComplete="new-password"
               helperText="At least 6 characters"
+              showPassword={showChangePasswords}
+              onTogglePassword={() => setShowChangePasswords((v) => !v)}
             />
             <Input
               label="Confirm New Password"
@@ -468,6 +482,8 @@ export default function SettingsPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               autoComplete="new-password"
+              showPassword={showChangePasswords}
+              onTogglePassword={() => setShowChangePasswords((v) => !v)}
             />
             <Button type="submit" isLoading={isSavingPassword}>
               Change Password

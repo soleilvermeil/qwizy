@@ -1,12 +1,12 @@
-# Open Duolingo
+# Qwizy!
 
-A self-hosted, open-source spaced repetition learning app inspired by Duolingo. Build and manage your own flashcard decks with configurable question types, track your progress, and learn efficiently using the FSRS algorithm.
+A self-hosted, open-source spaced repetition learning app. Build and manage your own flashcard decks with configurable question types, track your progress, and learn efficiently using the FSRS algorithm.
 
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router) with React 19 and TypeScript
 - **Styling:** Tailwind CSS v4
-- **Database:** SQLite via Prisma + libSQL
+- **Database:** PostgreSQL via Prisma
 - **Auth:** JWT in httpOnly cookies (jose) with bcryptjs password hashing
 - **Spaced Repetition:** ts-fsrs
 
@@ -25,6 +25,7 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
 
 - Node.js (v20 or later recommended)
 - npm
+- PostgreSQL (v14 or later recommended)
 
 ## Getting Started
 
@@ -39,7 +40,7 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
    Copy the example below into a `.env` file at the project root:
 
    ```env
-   DATABASE_URL="file:./dev.db"
+   DATABASE_URL="postgresql://user:password@localhost:5432/qwizy"
    JWT_SECRET="change-this-to-a-secure-random-string-in-production"
 
    # Optional: Legal pages (Legal Notice, Privacy Policy). Fall back to placeholders if unset.
@@ -51,6 +52,9 @@ A self-hosted, open-source spaced repetition learning app inspired by Duolingo. 
    # LEGAL_HOST_NAME="Hosting Provider Name"
    # LEGAL_HOST_ADDRESS="Hosting Provider Postal Address"
    # LEGAL_HOST_WEBSITE="https://hosting-provider.example.com"
+   # LEGAL_DB_HOST_NAME="Database Hosting Provider Name"
+   # LEGAL_DB_HOST_ADDRESS="Database Hosting Provider Postal Address"
+   # LEGAL_DB_HOST_WEBSITE="https://db-hosting-provider.example.com"
    # LEGAL_LAST_UPDATED="February 2026"
    ```
 
@@ -107,7 +111,7 @@ middleware.ts   # Auth and route protection middleware
 
 | Variable | Description | Default |
 |---|---|---|
-| `DATABASE_URL` | Database connection URL | `file:./dev.db` |
+| `DATABASE_URL` | PostgreSQL connection URL | Must be set |
 | `JWT_SECRET` | Secret key for signing JWT tokens | Must be set for production |
 | `NODE_ENV` | Node environment (`development` / `production`) | `development` |
 | `LEGAL_PUBLISHER_NAME` | Publisher / data controller name. Used in Legal Notice & Privacy Policy. | `[Your Name or Organization]` |
@@ -118,4 +122,7 @@ middleware.ts   # Auth and route protection middleware
 | `LEGAL_HOST_NAME` | Hosting provider name (Legal Notice only) | `[Hosting Provider Name]` |
 | `LEGAL_HOST_ADDRESS` | Hosting provider address (Legal Notice only) | `[Hosting Provider Postal Address]` |
 | `LEGAL_HOST_WEBSITE` | Hosting provider website (Legal Notice only) | `[https://hosting-provider.example.com]` |
+| `LEGAL_DB_HOST_NAME` | Database hosting provider name. When set, a separate "Database Hosting Provider" section appears in Legal Notice and Privacy Policy. | *(empty — hidden if unset)* |
+| `LEGAL_DB_HOST_ADDRESS` | Database hosting provider address | *(empty)* |
+| `LEGAL_DB_HOST_WEBSITE` | Database hosting provider website | *(empty)* |
 | `LEGAL_LAST_UPDATED` | Last updated date shown on legal pages | `February 2026` |

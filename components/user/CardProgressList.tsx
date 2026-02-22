@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui";
-import { MASTERY_LEVELS, getMasteryScore, formatDueDate, type MasteryLevel } from "@/lib/mastery";
+import { MASTERY_LEVELS, formatDueDate, type MasteryLevel } from "@/lib/mastery";
 
 interface QuestionTypeProgress {
   showFieldId: string;

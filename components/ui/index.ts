@@ -6,3 +6,4 @@ export { Select } from "./Select";
 export { Textarea } from "./Textarea";
 export { TokenFieldSelect } from "./TokenFieldSelect";
 export { Switch } from "./Switch";
+export { Checkbox } from "./Checkbox";

@@ -19,6 +19,12 @@ export const legalConfig = {
     process.env.LEGAL_HOST_ADDRESS ?? "[Hosting Provider Postal Address]",
   hostWebsite:
     process.env.LEGAL_HOST_WEBSITE ?? "[https://hosting-provider.example.com]",
+  dbHostName:
+    process.env.LEGAL_DB_HOST_NAME ?? "",
+  dbHostAddress:
+    process.env.LEGAL_DB_HOST_ADDRESS ?? "",
+  dbHostWebsite:
+    process.env.LEGAL_DB_HOST_WEBSITE ?? "",
   lastUpdated:
     process.env.LEGAL_LAST_UPDATED ?? "February 2026",
 } as const;

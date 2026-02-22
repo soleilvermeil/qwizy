@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, password, confirmPassword } = body;
+    const { username, password, confirmPassword, acceptedLegal } = body;
 
     // Validation
     if (!username || username.length < 3) {
@@ -37,6 +37,13 @@ export async function POST(request: NextRequest) {
     if (password !== confirmPassword) {
       return NextResponse.json(
         { error: "Passwords do not match" },
+        { status: 400 }
+      );
+    }
+
+    if (!acceptedLegal) {
+      return NextResponse.json(
+        { error: "You must accept the Privacy Policy and Legal Notice to register" },
         { status: 400 }
       );
     }

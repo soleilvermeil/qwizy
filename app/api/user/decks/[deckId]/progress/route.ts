@@ -41,20 +41,12 @@ export async function DELETE(
 
     const cardIds = cards.map((c) => c.id);
 
-    // Delete in batches to avoid SQLite parameter limit
-    const BATCH_SIZE = 500;
-    let totalDeleted = 0;
-
-    for (let i = 0; i < cardIds.length; i += BATCH_SIZE) {
-      const batch = cardIds.slice(i, i + BATCH_SIZE);
-      const result = await prisma.userProgress.deleteMany({
-        where: {
-          userId,
-          cardId: { in: batch },
-        },
-      });
-      totalDeleted += result.count;
-    }
+    const { count: totalDeleted } = await prisma.userProgress.deleteMany({
+      where: {
+        userId,
+        cardId: { in: cardIds },
+      },
+    });
 
     return NextResponse.json({
       message: "Progress reset successfully",

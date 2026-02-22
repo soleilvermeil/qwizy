@@ -114,7 +114,7 @@ export async function GET(
     }
 
     let questionPairs: FieldPair[] = [];
-    let explanationPairs: FieldPair[] = [];
+    const explanationPairs: FieldPair[] = [];
 
     if (deck.questionTypes.length > 0) {
       for (const qt of deck.questionTypes) {

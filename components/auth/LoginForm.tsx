@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Input } from "@/components/ui";
+import { Button, Input, Checkbox } from "@/components/ui";
 
 interface LoginFormProps {
   redirectTo?: string;
@@ -13,6 +13,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [publicComputer, setPublicComputer] = useState(true);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,7 +28,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, rememberMe: !publicComputer }),
       });
 
       const data = await response.json();
@@ -73,8 +74,14 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Enter your password"
         autoComplete="current-password"
-        helperText="Leave empty for passwordless admin"
       />
+
+      <Checkbox
+        checked={publicComputer}
+        onChange={setPublicComputer}
+      >
+        This is a public computer
+      </Checkbox>
 
       {error && (
         <div className="p-3 rounded-lg bg-error/10 text-error text-sm">
