@@ -130,11 +130,6 @@ export function FlashCard({
     (rating: "failed" | "hard" | "good" | "easy") => {
       cancelSpeech();
       onRate(rating);
-      setIsRevealed(false);
-      // Reset quiz state
-      setQuizPhase("choosing");
-      setSelectedChoice(null);
-      setSuggestedRating(null);
     },
     [onRate],
   );

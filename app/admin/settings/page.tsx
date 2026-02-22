@@ -12,6 +12,7 @@ import {
 
 export default function AdminSettingsPage() {
   const [allowSelfRegistration, setAllowSelfRegistration] = useState(true);
+  const [allowTeacherRegistration, setAllowTeacherRegistration] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -22,6 +23,7 @@ export default function AdminSettingsPage() {
       .then((r) => r.json())
       .then((data) => {
         setAllowSelfRegistration(data.settings.allowSelfRegistration);
+        setAllowTeacherRegistration(data.settings.allowTeacherRegistration ?? false);
       })
       .catch(() => setError("Failed to load settings"))
       .finally(() => setIsLoading(false));
@@ -36,7 +38,7 @@ export default function AdminSettingsPage() {
       const response = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ allowSelfRegistration }),
+        body: JSON.stringify({ allowSelfRegistration, allowTeacherRegistration }),
       });
 
       if (!response.ok) throw new Error("Failed to save settings");
@@ -77,7 +79,7 @@ export default function AdminSettingsPage() {
             Control whether new users can register accounts on their own
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -88,8 +90,23 @@ export default function AdminSettingsPage() {
             <div>
               <p className="font-medium text-foreground">Allow self-registration</p>
               <p className="text-sm text-muted">
-                When disabled, only administrators can create user accounts.
+                When disabled, only administrators can create personal user accounts.
                 The registration page will show a message telling users to contact their administrator.
+              </p>
+            </div>
+          </label>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allowTeacherRegistration}
+              onChange={(e) => setAllowTeacherRegistration(e.target.checked)}
+              className="mt-0.5 w-5 h-5 rounded border-border text-primary focus:ring-primary"
+            />
+            <div>
+              <p className="font-medium text-foreground">Allow teacher registration</p>
+              <p className="text-sm text-muted">
+                When enabled, users can register as teachers from the registration page.
+                Teachers can create and manage their own students, groups, and education-only decks.
               </p>
             </div>
           </label>

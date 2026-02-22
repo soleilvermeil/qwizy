@@ -18,6 +18,7 @@ interface Deck {
     cards: number;
   };
   createdAt: string;
+  createdBy?: { id: string; username: string } | null;
 }
 
 interface DeckListProps {
@@ -85,6 +86,9 @@ export function DeckList({ decks, onDelete }: DeckListProps) {
                 </div>
                 <p className="text-sm text-muted">
                   {deck._count.cards} card{deck._count.cards !== 1 ? "s" : ""}
+                  {deck.createdBy && (
+                    <span> · by {deck.createdBy.username}</span>
+                  )}
                 </p>
               </div>
 

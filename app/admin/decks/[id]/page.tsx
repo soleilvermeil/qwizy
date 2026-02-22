@@ -119,6 +119,7 @@ export default function EditDeckPage({ params }: PageProps) {
   const [visibility, setVisibility] = useState("PUBLIC");
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [visibilitySuccess, setVisibilitySuccess] = useState("");
+  const [isTeacherSession, setIsTeacherSession] = useState(false);
   // Quiz mode state
   const [deckMode, setDeckMode] = useState("NORMAL");
   const [quizChoices, setQuizChoices] = useState(4);
@@ -158,6 +159,9 @@ export default function EditDeckPage({ params }: PageProps) {
   useEffect(() => {
     fetchDeck();
     fetchCards();
+    fetch("/api/admin/settings")
+      .then((r) => { if (r.status === 401) setIsTeacherSession(true); })
+      .catch(() => {});
   }, [fetchDeck, fetchCards]);
 
   const handleUpdateDeck = async (data: {
@@ -516,6 +520,12 @@ export default function EditDeckPage({ params }: PageProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
+            {isTeacherSession ? (
+              <div className="p-3 rounded-lg bg-secondary">
+                <p className="font-medium text-foreground">Education only</p>
+                <p className="text-sm text-muted">Teacher decks are always education only and can only be accessed via group assignments.</p>
+              </div>
+            ) : (
             <div className="space-y-2">
               <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                 visibility === "PUBLIC" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
@@ -551,14 +561,17 @@ export default function EditDeckPage({ params }: PageProps) {
                 </div>
               </label>
             </div>
+            )}
 
             {visibilitySuccess && (
               <p className="text-sm text-success">{visibilitySuccess}</p>
             )}
 
+            {!isTeacherSession && (
             <Button size="sm" onClick={handleSaveVisibility} isLoading={isSavingVisibility}>
               Save Visibility
             </Button>
+            )}
 
             {/* Read-only: groups that have this deck assigned */}
             {deck.groupAssignments && deck.groupAssignments.length > 0 && (

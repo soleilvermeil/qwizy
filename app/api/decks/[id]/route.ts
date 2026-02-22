@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, canAccess } from "@/lib/admin-auth";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -52,15 +52,14 @@ export async function GET(
   }
 }
 
-// PUT /api/decks/[id] - Update a deck (admin only)
+// PUT /api/decks/[id] - Update a deck (admin or teacher)
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -68,6 +67,15 @@ export async function PUT(
     }
 
     const { id } = await params;
+
+    const existingDeck = await prisma.deck.findUnique({ where: { id } });
+    if (!existingDeck) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 });
+    }
+    if (!canAccess(auth, existingDeck.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { name, description, fields, visibility, mode, quizChoices, distractorStrategy } = body;
 
@@ -78,14 +86,13 @@ export async function PUT(
       );
     }
 
-    // Update deck and fields in a transaction
     const deck = await prisma.$transaction(async (tx) => {
-      // Update deck basic info
       const deckData: Record<string, unknown> = {
         name: name.trim(),
         description: description?.trim() || null,
       };
-      if (visibility === "PUBLIC" || visibility === "EDUCATION_ONLY") {
+      // Teachers cannot change visibility away from EDUCATION_ONLY
+      if (auth.isAdmin && (visibility === "PUBLIC" || visibility === "EDUCATION_ONLY")) {
         deckData.visibility = visibility;
       }
       if (mode === "NORMAL" || mode === "QUIZ") {
@@ -173,15 +180,14 @@ export async function PUT(
   }
 }
 
-// DELETE /api/decks/[id] - Delete a deck (admin only)
+// DELETE /api/decks/[id] - Delete a deck (admin or teacher)
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -189,6 +195,14 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    const deck = await prisma.deck.findUnique({ where: { id } });
+    if (!deck) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 });
+    }
+    if (!canAccess(auth, deck.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     await prisma.deck.delete({
       where: { id },

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, verifyDeckAccess } from "@/lib/admin-auth";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -11,15 +11,14 @@ interface CardData {
   tags?: string;
 }
 
-// POST /api/decks/[id]/import - Bulk import cards (admin only)
+// POST /api/decks/[id]/import - Bulk import cards (admin or teacher)
 export async function POST(
   request: NextRequest,
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -27,6 +26,11 @@ export async function POST(
     }
 
     const { id } = await params;
+
+    if (!(await verifyDeckAccess(auth, id))) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const { cards } = body;
 
@@ -37,7 +41,6 @@ export async function POST(
       );
     }
 
-    // Verify deck exists
     const deck = await prisma.deck.findUnique({
       where: { id },
       include: { fields: true },

@@ -273,6 +273,8 @@ export default function SettingsPage() {
               <span className="font-medium text-foreground">
                 {user?.isAdmin
                   ? "Administrator"
+                  : user?.accountType === "TEACHER"
+                  ? "Teacher"
                   : user?.accountType === "EDUCATION"
                   ? "Education"
                   : "Personal"}

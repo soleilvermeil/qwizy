@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession } from "@/lib/admin-auth";
 import { hashPassword } from "@/lib/auth";
 import { generateAppleStylePassword } from "@/lib/password-generator";
 
 // GET /api/admin/users - List users with filters
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {
       isAdmin: false,
+      ...auth.scopeWhere,
     };
 
     if (search) {
@@ -75,11 +76,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/admin/users - Mass create education users
+// POST /api/admin/users - Mass create users
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       newCardsPerDay,
       newCardsPerDayLocked = false,
       groupIds = [],
+      accountType = "EDUCATION",
     } = body as {
       usernames: string[];
       passwordMode: "unique" | "random";
@@ -100,7 +102,12 @@ export async function POST(request: NextRequest) {
       newCardsPerDay?: number;
       newCardsPerDayLocked?: boolean;
       groupIds?: string[];
+      accountType?: string;
     };
+
+    // Teachers can only create EDUCATION accounts
+    const resolvedAccountType =
+      auth.isTeacher ? "EDUCATION" : (accountType === "TEACHER" ? "TEACHER" : "EDUCATION");
 
     if (!usernames || !Array.isArray(usernames) || usernames.length === 0) {
       return NextResponse.json(
@@ -130,7 +137,7 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      const existing = await prisma.user.findUnique({ where: { username } });
+      const existing = await prisma.user.findFirst({ where: { username: { equals: username, mode: "insensitive" } } });
       if (existing) {
         errors.push({ username, error: "Username already exists" });
         continue;
@@ -147,10 +154,11 @@ export async function POST(request: NextRequest) {
         data: {
           username,
           passwordHash,
-          accountType: "EDUCATION",
+          accountType: resolvedAccountType,
           mustChangePassword,
           newCardsPerDay: newCardsPerDay ?? 10,
           newCardsPerDayLocked,
+          createdById: auth.session.userId,
         },
       });
 

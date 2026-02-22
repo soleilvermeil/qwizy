@@ -117,6 +117,7 @@ export default function AdminUsersPage() {
             { value: "", label: "All types" },
             { value: "EDUCATION", label: "Education" },
             { value: "PERSONAL", label: "Personal" },
+            { value: "TEACHER", label: "Teacher" },
           ]}
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
@@ -176,9 +177,11 @@ export default function AdminUsersPage() {
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                       user.accountType === "EDUCATION"
                         ? "bg-primary/10 text-primary"
+                        : user.accountType === "TEACHER"
+                        ? "bg-warning/10 text-warning"
                         : "bg-secondary text-muted-foreground"
                     }`}>
-                      {user.accountType === "EDUCATION" ? "Education" : "Personal"}
+                      {user.accountType === "EDUCATION" ? "Education" : user.accountType === "TEACHER" ? "Teacher" : "Personal"}
                     </span>
                   </td>
                   <td className="py-3 px-4">

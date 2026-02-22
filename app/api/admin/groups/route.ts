@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession } from "@/lib/admin-auth";
 
 // GET /api/admin/groups - List all groups
 export async function GET() {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const groups = await prisma.studentGroup.findMany({
+      where: { ...auth.scopeWhere },
       include: {
         _count: {
           select: {
@@ -35,8 +36,8 @@ export async function GET() {
 // POST /api/admin/groups - Create group
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
     const group = await prisma.studentGroup.create({
       data: {
         name: name.trim(),
+        createdById: auth.session.userId,
       },
     });
 

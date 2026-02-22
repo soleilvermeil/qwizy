@@ -78,13 +78,22 @@ export interface NavItem {
   icon: React.ReactNode;
 }
 
-export function getUserNavItems(isAdmin: boolean): NavItem[] {
+export function getUserNavItems(isAdmin: boolean, accountType?: string): NavItem[] {
   if (isAdmin) {
     return [
       { href: "/admin/decks", label: "Decks", icon: decksIcon },
       { href: "/admin/users", label: "Users", icon: usersIcon },
       { href: "/admin/groups", label: "Groups", icon: groupsIcon },
       { href: "/admin/settings", label: "Settings", icon: settingsIcon },
+      { href: "/settings", label: "Account", icon: accountIcon },
+    ];
+  }
+
+  if (accountType === "TEACHER") {
+    return [
+      { href: "/admin/decks", label: "Decks", icon: decksIcon },
+      { href: "/admin/users", label: "Users", icon: usersIcon },
+      { href: "/admin/groups", label: "Groups", icon: groupsIcon },
       { href: "/settings", label: "Account", icon: accountIcon },
     ];
   }

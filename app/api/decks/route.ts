@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession } from "@/lib/admin-auth";
 
 // GET /api/decks - List decks visible to the current user
 export async function GET() {
@@ -13,6 +14,7 @@ export async function GET() {
         include: {
           fields: { orderBy: { position: "asc" } },
           _count: { select: { cards: true } },
+          createdBy: { select: { id: true, username: true } },
           groupAssignments: {
             select: { group: { select: { id: true, name: true } } },
           },
@@ -30,6 +32,24 @@ export async function GET() {
       return NextResponse.json({ decks, enrolledDeckIds });
     }
 
+    // Teachers see only their own decks (with group assignments)
+    if (session?.accountType === "TEACHER") {
+      const decks = await prisma.deck.findMany({
+        where: { createdById: session.userId },
+        include: {
+          fields: { orderBy: { position: "asc" } },
+          _count: { select: { cards: true } },
+          createdBy: { select: { id: true, username: true } },
+          groupAssignments: {
+            select: { group: { select: { id: true, name: true } } },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return NextResponse.json({ decks, enrolledDeckIds: [] });
+    }
+
     // Build visibility filter for non-admin users
     let where: Record<string, unknown> = {};
 
@@ -45,7 +65,6 @@ export async function GET() {
       });
 
       if (user?.accountType === "EDUCATION") {
-        // Education users: only see decks assigned to their groups
         const userGroupIds = user.groupMemberships.map((m) => m.groupId);
         const groupDecks = await prisma.deckGroupAssignment.findMany({
           where: { groupId: { in: userGroupIds } },
@@ -53,11 +72,9 @@ export async function GET() {
         });
         where = { id: { in: groupDecks.map((d) => d.deckId) } };
       } else {
-        // PERSONAL users: see only PUBLIC decks
         where = { visibility: "PUBLIC" };
       }
     } else {
-      // Unauthenticated: see only PUBLIC decks
       where = { visibility: "PUBLIC" };
     }
 
@@ -89,12 +106,11 @@ export async function GET() {
   }
 }
 
-// POST /api/decks - Create a new deck (admin only)
+// POST /api/decks - Create a new deck (admin or teacher)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -111,7 +127,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Default fields if none provided
+    // Teachers can only create EDUCATION_ONLY decks
+    const resolvedVisibility = auth.isTeacher
+      ? "EDUCATION_ONLY"
+      : (visibility === "EDUCATION_ONLY" ? "EDUCATION_ONLY" : "PUBLIC");
+
     const deckFields = fields && fields.length > 0
       ? fields
       : [
@@ -123,7 +143,8 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         description: description?.trim() || null,
-        visibility: visibility === "EDUCATION_ONLY" ? "EDUCATION_ONLY" : "PUBLIC",
+        visibility: resolvedVisibility,
+        createdById: auth.session.userId,
         fields: {
           create: deckFields.map((f: { name: string }, index: number) => ({
             name: f.name.trim(),

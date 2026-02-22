@@ -5,21 +5,31 @@ import { prisma } from "@/lib/db";
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if self-registration is allowed
     const settings = await prisma.appSettings.findUnique({
       where: { id: "singleton" },
     });
-    if (settings && !settings.allowSelfRegistration) {
-      return NextResponse.json(
-        { error: "Registration is currently disabled. Please contact your administrator." },
-        { status: 403 }
-      );
-    }
 
     const body = await request.json();
-    const { username, password, confirmPassword, acceptedLegal } = body;
+    const { username, password, confirmPassword, acceptedLegal, accountType } = body;
 
-    // Validation
+    const wantTeacher = accountType === "TEACHER";
+
+    if (wantTeacher) {
+      if (settings && !settings.allowTeacherRegistration) {
+        return NextResponse.json(
+          { error: "Teacher registration is currently disabled. Please contact your administrator." },
+          { status: 403 }
+        );
+      }
+    } else {
+      if (settings && !settings.allowSelfRegistration) {
+        return NextResponse.json(
+          { error: "Registration is currently disabled. Please contact your administrator." },
+          { status: 403 }
+        );
+      }
+    }
+
     if (!username || username.length < 3) {
       return NextResponse.json(
         { error: "Username must be at least 3 characters" },
@@ -48,7 +58,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for invalid characters in username
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       return NextResponse.json(
         { error: "Username can only contain letters, numbers, underscores, and hyphens" },
@@ -56,7 +65,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await createUser(username, password);
+    const user = await createUser(username, password, {
+      accountType: wantTeacher ? "TEACHER" : "PERSONAL",
+    });
 
     await createSession(user);
 
@@ -65,6 +76,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         username: user.username,
         isAdmin: user.isAdmin,
+        accountType: user.accountType,
       },
     });
   } catch (error) {

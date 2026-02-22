@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, canAccess } from "@/lib/admin-auth";
 import { hashPassword } from "@/lib/auth";
 
 type RouteParams = {
@@ -13,8 +13,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -31,6 +31,8 @@ export async function GET(
         newCardsPerDay: true,
         newCardsPerDayLocked: true,
         createdAt: true,
+        createdById: true,
+        createdBy: { select: { id: true, username: true } },
         groupMemberships: {
           select: {
             group: {
@@ -58,9 +60,16 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    if (!canAccess(auth, user.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     return NextResponse.json({
       user: {
         ...user,
+        createdById: undefined,
+        createdByUsername: user.createdBy?.username ?? null,
+        createdBy: undefined,
         groups: user.groupMemberships.map((m) => m.group),
         decks: user.enrollments.map((e) => e.deck),
         groupMemberships: undefined,
@@ -82,8 +91,8 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -102,12 +111,15 @@ export async function PUT(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Don't allow editing admin users
     if (user.isAdmin) {
       return NextResponse.json(
         { error: "Cannot edit admin users" },
         { status: 403 }
       );
+    }
+
+    if (!canAccess(auth, user.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const data: Record<string, unknown> = {};
@@ -179,8 +191,8 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -196,6 +208,29 @@ export async function DELETE(
         { error: "Cannot delete admin users" },
         { status: 403 }
       );
+    }
+
+    if (!canAccess(auth, user.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // If deleting a teacher, reassign their content to admin
+    if (user.accountType === "TEACHER") {
+      const admin = await prisma.user.findFirst({ where: { isAdmin: true } });
+      if (admin) {
+        await prisma.user.updateMany({
+          where: { createdById: id },
+          data: { createdById: admin.id },
+        });
+        await prisma.deck.updateMany({
+          where: { createdById: id },
+          data: { createdById: admin.id },
+        });
+        await prisma.studentGroup.updateMany({
+          where: { createdById: id },
+          data: { createdById: admin.id },
+        });
+      }
     }
 
     await prisma.user.delete({ where: { id } });

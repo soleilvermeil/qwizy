@@ -8,6 +8,7 @@ interface HeaderProps {
   user?: {
     username: string;
     isAdmin: boolean;
+    accountType?: string;
   } | null;
 }
 
@@ -20,11 +21,15 @@ export function Header({ user }: HeaderProps) {
     router.refresh();
   };
 
+  const homeHref = user
+    ? (user.isAdmin || user.accountType === "TEACHER" ? "/admin/decks" : "/decks")
+    : "/";
+
   return (
     <header className="sticky top-0 z-40 bg-card-bg border-b border-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href={user ? (user.isAdmin ? "/admin/decks" : "/decks") : "/"} className="flex items-center h-full">
+          <Link href={homeHref} className="flex items-center h-full">
             <h1 className="text-xl font-bold text-primary">Qwizy!</h1>
           </Link>
 
@@ -36,6 +41,11 @@ export function Header({ user }: HeaderProps) {
                   {user.isAdmin && (
                     <span className="ml-2 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
                       Admin
+                    </span>
+                  )}
+                  {!user.isAdmin && user.accountType === "TEACHER" && (
+                    <span className="ml-2 px-2 py-0.5 text-xs bg-warning/10 text-warning rounded-full">
+                      Teacher
                     </span>
                   )}
                 </span>

@@ -42,11 +42,14 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { allowSelfRegistration } = body;
+    const { allowSelfRegistration, allowTeacherRegistration } = body;
 
-    const data: { allowSelfRegistration?: boolean } = {};
+    const data: { allowSelfRegistration?: boolean; allowTeacherRegistration?: boolean } = {};
     if (typeof allowSelfRegistration === "boolean") {
       data.allowSelfRegistration = allowSelfRegistration;
+    }
+    if (typeof allowTeacherRegistration === "boolean") {
+      data.allowTeacherRegistration = allowTeacherRegistration;
     }
 
     const settings = await prisma.appSettings.upsert({
