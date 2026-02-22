@@ -182,7 +182,7 @@ export default function AdminUserDetailPage({
         <div>
           <h1 className="text-2xl font-bold text-foreground">{user.username}</h1>
           <p className="text-muted">
-            {user.accountType === "EDUCATION" ? "Education" : "Personal"} account
+            {user.accountType === "TEACHER" ? "Teacher" : user.accountType === "EDUCATION" ? "Education" : "Personal"} account
             {" "}&middot;{" "}
             Joined {new Date(user.createdAt).toLocaleDateString()}
           </p>

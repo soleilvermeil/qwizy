@@ -21,7 +21,7 @@ export default async function SettingsLayout({
 
   return (
     <div className="min-h-screen pb-16 sm:pb-0">
-      <Header user={{ username: session.username, isAdmin: session.isAdmin }} />
+      <Header user={{ username: session.username, isAdmin: session.isAdmin, accountType: session.accountType }} />
       <Navigation items={navItems} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
