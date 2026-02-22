@@ -34,6 +34,7 @@ interface User {
   newCardsPerDay: number;
   newCardsPerDayLocked: boolean;
   createdAt: string;
+  createdByUsername: string | null;
   groups: Group[];
   decks: DeckInfo[];
 }
@@ -185,6 +186,9 @@ export default function AdminUserDetailPage({
             {user.accountType === "TEACHER" ? "Teacher" : user.accountType === "EDUCATION" ? "Education" : "Personal"} account
             {" "}&middot;{" "}
             Joined {new Date(user.createdAt).toLocaleDateString()}
+            {user.createdByUsername && (
+              <> &middot; Created by {user.createdByUsername}</>
+            )}
           </p>
         </div>
         <Link href="/admin/users">

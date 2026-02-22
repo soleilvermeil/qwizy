@@ -19,6 +19,7 @@ interface Deck {
     cards: number;
   };
   createdAt: string;
+  createdBy?: { id: string; username: string } | null;
 }
 
 export default function AdminDecksPage() {

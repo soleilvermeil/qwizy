@@ -32,6 +32,7 @@ export async function GET(
         newCardsPerDayLocked: true,
         createdAt: true,
         createdById: true,
+        createdBy: { select: { id: true, username: true } },
         groupMemberships: {
           select: {
             group: {
@@ -67,6 +68,8 @@ export async function GET(
       user: {
         ...user,
         createdById: undefined,
+        createdByUsername: user.createdBy?.username ?? null,
+        createdBy: undefined,
         groups: user.groupMemberships.map((m) => m.group),
         decks: user.enrollments.map((e) => e.deck),
         groupMemberships: undefined,

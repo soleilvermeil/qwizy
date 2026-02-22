@@ -14,6 +14,7 @@ export async function GET() {
         include: {
           fields: { orderBy: { position: "asc" } },
           _count: { select: { cards: true } },
+          createdBy: { select: { id: true, username: true } },
           groupAssignments: {
             select: { group: { select: { id: true, name: true } } },
           },
@@ -38,6 +39,7 @@ export async function GET() {
         include: {
           fields: { orderBy: { position: "asc" } },
           _count: { select: { cards: true } },
+          createdBy: { select: { id: true, username: true } },
           groupAssignments: {
             select: { group: { select: { id: true, name: true } } },
           },
