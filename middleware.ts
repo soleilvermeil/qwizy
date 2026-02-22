@@ -34,7 +34,10 @@ export async function middleware(request: NextRequest) {
 
   // If authenticated and trying to access login/register
   if (session && (pathname === "/login" || pathname === "/register")) {
-    const redirectTo = session.isAdmin ? "/admin/decks" : "/decks";
+    const redirectTo =
+      session.isAdmin || session.accountType === "TEACHER"
+        ? "/admin/decks"
+        : "/decks";
     return NextResponse.redirect(new URL(redirectTo, request.url));
   }
 
@@ -55,8 +58,14 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isAdminRoute && session && !session.isAdmin) {
-    // Non-admin trying to access admin route
-    return NextResponse.redirect(new URL("/decks", request.url));
+    if (session.accountType === "TEACHER") {
+      // Teachers can access admin routes except settings
+      if (pathname === "/admin/settings" || pathname.startsWith("/admin/settings/")) {
+        return NextResponse.redirect(new URL("/admin/decks", request.url));
+      }
+    } else {
+      return NextResponse.redirect(new URL("/decks", request.url));
+    }
   }
 
   // Try to update session (refresh if needed)

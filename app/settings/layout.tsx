@@ -17,7 +17,7 @@ export default async function SettingsLayout({
     redirect("/login");
   }
 
-  const navItems = getUserNavItems(session.isAdmin);
+  const navItems = getUserNavItems(session.isAdmin, session.accountType);
 
   return (
     <div className="min-h-screen pb-16 sm:pb-0">

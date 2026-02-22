@@ -32,6 +32,7 @@ interface CreationError {
 
 export default function CreateUsersPage() {
   const router = useRouter();
+  const [accountType, setAccountType] = useState<"EDUCATION" | "TEACHER">("EDUCATION");
   const [usernamesText, setUsernamesText] = useState("");
   const [passwordMode, setPasswordMode] = useState<"unique" | "random">("random");
   const [uniquePassword, setUniquePassword] = useState("");
@@ -42,6 +43,7 @@ export default function CreateUsersPage() {
   const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isTeacherSession, setIsTeacherSession] = useState(false);
 
   // Result state
   const [createdUsers, setCreatedUsers] = useState<CreatedUser[] | null>(null);
@@ -54,6 +56,12 @@ export default function CreateUsersPage() {
     fetch("/api/admin/groups")
       .then((r) => r.json())
       .then((data) => setGroups(data.groups))
+      .catch(() => {});
+    // Check if current user is a teacher (can't access settings endpoint)
+    fetch("/api/admin/settings")
+      .then((r) => {
+        if (r.status === 401) setIsTeacherSession(true);
+      })
       .catch(() => {});
   }, []);
 
@@ -87,9 +95,10 @@ export default function CreateUsersPage() {
           passwordMode,
           uniquePassword: passwordMode === "unique" ? uniquePassword : undefined,
           mustChangePassword,
-          newCardsPerDay: newCardsPerDay ? parseInt(newCardsPerDay) : undefined,
-          newCardsPerDayLocked,
-          groupIds: selectedGroupIds,
+          newCardsPerDay: accountType === "EDUCATION" && newCardsPerDay ? parseInt(newCardsPerDay) : undefined,
+          newCardsPerDayLocked: accountType === "EDUCATION" ? newCardsPerDayLocked : undefined,
+          groupIds: accountType === "EDUCATION" ? selectedGroupIds : [],
+          accountType,
         }),
       });
 
@@ -106,7 +115,7 @@ export default function CreateUsersPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [usernamesText, passwordMode, uniquePassword, mustChangePassword, newCardsPerDay, newCardsPerDayLocked, selectedGroupIds]);
+  }, [usernamesText, passwordMode, uniquePassword, mustChangePassword, newCardsPerDay, newCardsPerDayLocked, selectedGroupIds, accountType]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,12 +236,60 @@ export default function CreateUsersPage() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Create Users</h1>
-        <p className="text-muted">Mass-create education accounts</p>
+        <p className="text-muted">
+          {accountType === "TEACHER" ? "Mass-create teacher accounts" : "Mass-create education accounts"}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {error && (
           <div className="p-3 rounded-lg bg-error/10 text-error text-sm">{error}</div>
+        )}
+
+        {/* Account Type (only visible to admins, not to teachers) */}
+        {!isTeacherSession && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Type</CardTitle>
+              <CardDescription>Choose the type of accounts to create</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  accountType === "EDUCATION" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+                }`}>
+                  <input
+                    type="radio"
+                    name="accountType"
+                    value="EDUCATION"
+                    checked={accountType === "EDUCATION"}
+                    onChange={() => setAccountType("EDUCATION")}
+                    className="mt-0.5 accent-[var(--color-primary)]"
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">Education accounts</p>
+                    <p className="text-sm text-muted">Student accounts that can be assigned to groups and decks</p>
+                  </div>
+                </label>
+                <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  accountType === "TEACHER" ? "border-primary bg-primary/5" : "border-border hover:border-muted-foreground"
+                }`}>
+                  <input
+                    type="radio"
+                    name="accountType"
+                    value="TEACHER"
+                    checked={accountType === "TEACHER"}
+                    onChange={() => setAccountType("TEACHER")}
+                    className="mt-0.5 accent-[var(--color-primary)]"
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">Teacher accounts</p>
+                    <p className="text-sm text-muted">Teachers can create and manage their own students, groups, and education-only decks</p>
+                  </div>
+                </label>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Usernames */}
@@ -324,8 +381,8 @@ export default function CreateUsersPage() {
           </CardContent>
         </Card>
 
-        {/* Learning Settings */}
-        <Card>
+        {/* Learning Settings (only for education accounts) */}
+        {accountType === "EDUCATION" && <Card>
           <CardHeader>
             <CardTitle>Learning Settings</CardTitle>
             <CardDescription>Optional: set cards per day for these accounts</CardDescription>
@@ -355,10 +412,10 @@ export default function CreateUsersPage() {
               </label>
             </div>
           </CardContent>
-        </Card>
+        </Card>}
 
-        {/* Groups */}
-        {groups.length > 0 && (
+        {/* Groups (only for education accounts) */}
+        {accountType === "EDUCATION" && groups.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Groups</CardTitle>

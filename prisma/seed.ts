@@ -66,6 +66,31 @@ async function main() {
   if (enrollCount > 0) {
     console.log(`Backfilled ${enrollCount} deck enrollment(s) from existing progress.`);
   }
+
+  // Backfill: set createdById to admin for all existing users/decks/groups
+  const usersUpdated = await prisma.user.updateMany({
+    where: { id: { not: admin.id }, createdById: null },
+    data: { createdById: admin.id },
+  });
+  if (usersUpdated.count > 0) {
+    console.log(`Backfilled createdById on ${usersUpdated.count} user(s).`);
+  }
+
+  const decksUpdated = await prisma.deck.updateMany({
+    where: { createdById: null },
+    data: { createdById: admin.id },
+  });
+  if (decksUpdated.count > 0) {
+    console.log(`Backfilled createdById on ${decksUpdated.count} deck(s).`);
+  }
+
+  const groupsUpdated = await prisma.studentGroup.updateMany({
+    where: { createdById: null },
+    data: { createdById: admin.id },
+  });
+  if (groupsUpdated.count > 0) {
+    console.log(`Backfilled createdById on ${groupsUpdated.count} group(s).`);
+  }
 }
 
 main()

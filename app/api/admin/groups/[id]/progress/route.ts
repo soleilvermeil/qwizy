@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, canAccess } from "@/lib/admin-auth";
 import { getMasteryLevel, getLowestStability } from "@/lib/mastery";
 
 type RouteParams = {
@@ -13,8 +13,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -45,6 +45,10 @@ export async function GET(
 
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+
+    if (!canAccess(auth, group.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const members = group.members.map((m) => m.user);

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession } from "@/lib/admin-auth";
 import { hashPassword } from "@/lib/auth";
 
 // PUT /api/admin/users/bulk - Bulk update users
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -58,6 +58,7 @@ export async function PUT(request: NextRequest) {
         where: {
           id: { in: userIds },
           isAdmin: false,
+          ...auth.scopeWhere,
         },
         data: userData,
       });
@@ -66,7 +67,7 @@ export async function PUT(request: NextRequest) {
     // Add group memberships (only for EDUCATION accounts)
     if (addGroupIds && addGroupIds.length > 0) {
       const educationUsers = await prisma.user.findMany({
-        where: { id: { in: userIds }, accountType: "EDUCATION" },
+        where: { id: { in: userIds }, accountType: "EDUCATION", ...auth.scopeWhere },
         select: { id: true },
       });
       const educationUserIds = educationUsers.map((u) => u.id);

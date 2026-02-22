@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, canAccess } from "@/lib/admin-auth";
 import { getMasteryLevel, getLowestStability, type MasteryLevel } from "@/lib/mastery";
 
 type RouteParams = {
@@ -13,8 +13,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -22,10 +22,14 @@ export async function GET(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true },
+      select: { id: true, username: true, createdById: true },
     });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (!canAccess(auth, user.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Get all decks the user is enrolled in

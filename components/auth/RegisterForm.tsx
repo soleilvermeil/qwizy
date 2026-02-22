@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Checkbox } from "@/components/ui";
 
-export function RegisterForm() {
+interface RegisterFormProps {
+  accountType?: string;
+}
+
+export function RegisterForm({ accountType = "PERSONAL" }: RegisterFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -37,7 +41,7 @@ export function RegisterForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password, confirmPassword, acceptedLegal }),
+        body: JSON.stringify({ username, password, confirmPassword, acceptedLegal, accountType }),
       });
 
       const data = await response.json();
@@ -47,7 +51,7 @@ export function RegisterForm() {
         return;
       }
 
-      router.push("/decks");
+      router.push(accountType === "TEACHER" ? "/admin/decks" : "/decks");
       router.refresh();
     } catch {
       setError("An error occurred. Please try again.");

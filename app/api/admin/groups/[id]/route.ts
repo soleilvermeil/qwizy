@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, canAccess } from "@/lib/admin-auth";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -86,8 +86,8 @@ export async function GET(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -135,6 +135,10 @@ export async function GET(
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
+    if (!canAccess(auth, group.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     return NextResponse.json({
       group: {
         ...group,
@@ -162,12 +166,21 @@ export async function PUT(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
+
+    const existingGroup = await prisma.studentGroup.findUnique({ where: { id } });
+    if (!existingGroup) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (!canAccess(auth, existingGroup.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { name, deckAssignments } = body;
 
@@ -241,12 +254,20 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
+
+    const existingGroup = await prisma.studentGroup.findUnique({ where: { id } });
+    if (!existingGroup) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (!canAccess(auth, existingGroup.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // Before deleting, clean up enrollments for decks that were assigned
     const assignments = await prisma.deckGroupAssignment.findMany({

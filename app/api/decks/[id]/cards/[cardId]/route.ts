@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, verifyDeckAccess } from "@/lib/admin-auth";
 
 type RouteParams = {
   params: Promise<{ id: string; cardId: string }>;
@@ -41,22 +41,22 @@ export async function GET(
   }
 }
 
-// PUT /api/decks/[id]/cards/[cardId] - Update a card (admin only)
+// PUT /api/decks/[id]/cards/[cardId] - Update a card (admin or teacher)
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-
-    if (!session || !session.isAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id, cardId } = await params;
+
+    if (!(await verifyDeckAccess(auth, id))) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 });
+    }
     const body = await request.json();
     const { values } = body;
 
@@ -109,22 +109,22 @@ export async function PUT(
   }
 }
 
-// DELETE /api/decks/[id]/cards/[cardId] - Delete a card (admin only)
+// DELETE /api/decks/[id]/cards/[cardId] - Delete a card (admin or teacher)
 export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-
-    if (!session || !session.isAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id, cardId } = await params;
+
+    if (!(await verifyDeckAccess(auth, id))) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 });
+    }
 
     // Verify card exists
     const card = await prisma.card.findFirst({

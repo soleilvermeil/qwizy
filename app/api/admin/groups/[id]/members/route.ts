@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, canAccess } from "@/lib/admin-auth";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
@@ -12,8 +12,8 @@ export async function POST(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -28,15 +28,17 @@ export async function POST(
       );
     }
 
-    // Verify group exists
     const group = await prisma.studentGroup.findUnique({ where: { id: groupId } });
     if (!group) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
+    if (!canAccess(auth, group.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // Only EDUCATION accounts can be added to groups
+    // Only EDUCATION accounts can be added; teachers can only add their own users
     const users = await prisma.user.findMany({
-      where: { id: { in: userIds } },
+      where: { id: { in: userIds }, ...auth.scopeWhere },
       select: { id: true, accountType: true },
     });
     const educationUserIds = users
@@ -98,12 +100,20 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-    if (!session || !session.isAdmin) {
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id: groupId } = await params;
+
+    const group = await prisma.studentGroup.findUnique({ where: { id: groupId } });
+    if (!group) {
+      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    }
+    if (!canAccess(auth, group.createdById)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const body = await request.json();
     const { userIds } = body as { userIds: string[] };
 

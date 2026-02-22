@@ -17,11 +17,11 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  if (!session.isAdmin) {
+  if (!session.isAdmin && session.accountType !== "TEACHER") {
     redirect("/decks");
   }
 
-  const navItems = getUserNavItems(true);
+  const navItems = getUserNavItems(session.isAdmin, session.accountType);
 
   return (
     <div className="min-h-screen pb-16 sm:pb-0">

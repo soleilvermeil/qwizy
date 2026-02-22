@@ -43,7 +43,10 @@ export async function authenticateUser(username: string, password: string) {
 export async function createUser(
   username: string,
   password: string,
-  isAdmin: boolean = false
+  options: {
+    isAdmin?: boolean;
+    accountType?: string;
+  } = {}
 ) {
   const existingUser = await prisma.user.findFirst({
     where: { username: { equals: username, mode: "insensitive" } },
@@ -59,7 +62,8 @@ export async function createUser(
     data: {
       username,
       passwordHash: hashedPassword,
-      isAdmin,
+      isAdmin: options.isAdmin ?? false,
+      accountType: options.accountType ?? "PERSONAL",
     },
   });
 }

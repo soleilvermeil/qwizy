@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getAdminOrTeacherSession, verifyDeckAccess } from "@/lib/admin-auth";
 
 type RouteParams = {
   params: Promise<{ id: string }>;
 };
 
-// PUT /api/decks/[id]/cards/reorder - Reorder cards (admin only)
+// PUT /api/decks/[id]/cards/reorder - Reorder cards (admin or teacher)
 export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
   try {
-    const session = await getSession();
-
-    if (!session || !session.isAdmin) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+    const auth = await getAdminOrTeacherSession();
+    if (!auth) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id: deckId } = await params;
+
+    if (!(await verifyDeckAccess(auth, deckId))) {
+      return NextResponse.json({ error: "Deck not found" }, { status: 404 });
+    }
     const body = await request.json();
     const { cardId, direction } = body;
 
