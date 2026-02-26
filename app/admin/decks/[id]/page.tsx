@@ -10,6 +10,7 @@ import {
   CardTitle,
   CardContent,
   Modal,
+  ModalFooter,
   Input,
   Select,
   TokenFieldSelect,
@@ -126,6 +127,10 @@ export default function EditDeckPage({ params }: PageProps) {
   const [distractorStrategy, setDistractorStrategy] = useState("TAGS");
   const [isSavingMode, setIsSavingMode] = useState(false);
   const [modeSuccess, setModeSuccess] = useState("");
+  const [shuffleFlow, setShuffleFlow] = useState<"closed" | "choice" | "confirmReset">("closed");
+  const [isShuffling, setIsShuffling] = useState(false);
+  const [shuffleError, setShuffleError] = useState("");
+  const [shuffleSuccess, setShuffleSuccess] = useState("");
 
   const fetchDeck = useCallback(async () => {
     try {
@@ -256,6 +261,43 @@ export default function EditDeckPage({ params }: PageProps) {
       fetchCards();
     } catch (error) {
       console.error("Error reordering card:", error);
+    }
+  };
+
+  const openShuffleModal = () => {
+    setShuffleError("");
+    setShuffleFlow("choice");
+  };
+
+  const executeShuffle = async (resetProgressForAllUsers: boolean) => {
+    setIsShuffling(true);
+    setShuffleError("");
+    setShuffleSuccess("");
+    try {
+      const response = await fetch(`/api/decks/${id}/cards/shuffle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetProgressForAllUsers }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to shuffle cards");
+      }
+
+      await fetchCards();
+      setShuffleFlow("closed");
+      if (resetProgressForAllUsers) {
+        setShuffleSuccess(
+          `Cards shuffled and ${data.progressDeletedCount ?? 0} progression records were reset.`
+        );
+      } else {
+        setShuffleSuccess(`Cards shuffled (${data.shuffledCount ?? cards.length} cards).`);
+      }
+    } catch (error) {
+      setShuffleError(error instanceof Error ? error.message : "Failed to shuffle cards");
+    } finally {
+      setIsShuffling(false);
     }
   };
 
@@ -1271,6 +1313,27 @@ export default function EditDeckPage({ params }: PageProps) {
               Import CSV
             </Button>
           </Link>
+          <Button
+            variant="outline"
+            onClick={openShuffleModal}
+            disabled={cards.length < 2 || isShuffling}
+            title={cards.length < 2 ? "At least 2 cards are required to shuffle" : "Shuffle card order"}
+          >
+            <svg
+              className="w-5 h-5 mr-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4h5l2 4h9M4 20h5l2-4h9M15 8l5-4m0 0v4m0-4h-4M15 16l5 4m0 0v-4m0 4h-4"
+              />
+            </svg>
+            Shuffle
+          </Button>
           <Button onClick={() => setIsAddCardModalOpen(true)}>
             <svg
               className="w-5 h-5 mr-1"
@@ -1289,6 +1352,13 @@ export default function EditDeckPage({ params }: PageProps) {
           </Button>
         </div>
       </div>
+
+      {(shuffleSuccess || shuffleError) && (
+        <div className="space-y-1">
+          {shuffleSuccess && <p className="text-sm text-success">{shuffleSuccess}</p>}
+          {shuffleError && <p className="text-sm text-error">{shuffleError}</p>}
+        </div>
+      )}
 
       {cards.length === 0 ? (
         <Card>
@@ -1497,6 +1567,100 @@ export default function EditDeckPage({ params }: PageProps) {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal
+        isOpen={shuffleFlow === "choice"}
+        onClose={() => {
+          if (!isShuffling) setShuffleFlow("closed");
+        }}
+        title="Shuffle Cards"
+        size="md"
+        closeOnOutsideClick={!isShuffling}
+        showCloseButton={!isShuffling}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-foreground">
+            This will randomly reorder cards in this deck.
+          </p>
+          <p className="text-sm text-warning font-medium">
+            Warning: this action cannot be undone.
+          </p>
+          <p className="text-sm text-muted">
+            Shuffling will not modify already learned or scheduled cards. To clear all progression
+            for every user on this deck, choose &quot;Shuffle and Reset All Progression&quot;.
+          </p>
+          {shuffleError && (
+            <div className="p-3 rounded-lg bg-error/10 text-error text-sm">
+              {shuffleError}
+            </div>
+          )}
+          <ModalFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShuffleFlow("closed")}
+              disabled={isShuffling}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => executeShuffle(false)}
+              isLoading={isShuffling}
+            >
+              Shuffle
+            </Button>
+            <Button
+              variant="warning"
+              onClick={() => setShuffleFlow("confirmReset")}
+              disabled={isShuffling}
+            >
+              Shuffle and Reset All Progression
+            </Button>
+          </ModalFooter>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={shuffleFlow === "confirmReset"}
+        onClose={() => {
+          if (!isShuffling) setShuffleFlow("choice");
+        }}
+        title="Confirm Progress Reset"
+        size="md"
+        closeOnOutsideClick={!isShuffling}
+        showCloseButton={!isShuffling}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-error font-semibold">
+            This will reset progression for all users enrolled in this deck.
+          </p>
+          <p className="text-sm text-muted">
+            Every learned and scheduled card in this deck will be forgotten, and everyone will start
+            from the new shuffled order. This cannot be undone.
+          </p>
+          {shuffleError && (
+            <div className="p-3 rounded-lg bg-error/10 text-error text-sm">
+              {shuffleError}
+            </div>
+          )}
+          <ModalFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShuffleFlow("choice")}
+              disabled={isShuffling}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="error"
+              onClick={() => executeShuffle(true)}
+              isLoading={isShuffling}
+            >
+              Confirm Shuffle and Reset
+            </Button>
+          </ModalFooter>
+        </div>
       </Modal>
     </div>
   );
