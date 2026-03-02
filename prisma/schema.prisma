@@ -98,6 +98,8 @@ model Card {
   deck      Deck           @relation(fields: [deckId], references: [id], onDelete: Cascade)
   values    CardValue[]
   progress  UserProgress[]
+
+  @@index([deckId, position])
 }
 
 model CardValue {
@@ -132,6 +134,7 @@ model UserProgress {
   card           Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
 
   @@unique([userId, cardId, showFieldId, askFieldId])
+  @@index([cardId])
 }
 
 model StudentGroup {

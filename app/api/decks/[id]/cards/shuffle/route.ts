@@ -10,15 +10,6 @@ type ShuffleRequestBody = {
   resetProgressForAllUsers?: boolean;
 };
 
-function shuffleCardIds(cardIds: string[]): string[] {
-  const shuffled = [...cardIds];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
 // POST /api/decks/[id]/cards/shuffle - Shuffle deck cards and optionally reset progress
 export async function POST(
   request: NextRequest,
@@ -45,45 +36,57 @@ export async function POST(
       );
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const cards = await tx.card.findMany({
-        where: { deckId },
-        select: { id: true },
-        orderBy: { position: "asc" },
-      });
+    const shuffledCount = await prisma.card.count({
+      where: { deckId },
+    });
 
-      if (cards.length > 1) {
-        const shuffledCardIds = shuffleCardIds(cards.map((card) => card.id));
-        await Promise.all(
-          shuffledCardIds.map((cardId, position) =>
-            tx.card.update({
-              where: { id: cardId },
-              data: { position },
-            })
+    let progressDeletedCount = 0;
+
+    if (shuffledCount > 1 && resetProgressForAllUsers) {
+      const [, deleted] = await prisma.$transaction([
+        prisma.$executeRaw`
+          WITH shuffled AS (
+            SELECT id, row_number() OVER (ORDER BY random()) - 1 AS new_position
+            FROM "Card"
+            WHERE "deckId" = ${deckId}
           )
-        );
-      }
-
-      let progressDeletedCount = 0;
-      if (resetProgressForAllUsers) {
-        const deleted = await tx.userProgress.deleteMany({
+          UPDATE "Card" AS c
+          SET "position" = shuffled.new_position
+          FROM shuffled
+          WHERE c.id = shuffled.id
+        `,
+        prisma.userProgress.deleteMany({
           where: {
             card: { deckId },
           },
-        });
-        progressDeletedCount = deleted.count;
-      }
-
-      return {
-        shuffledCount: cards.length,
-        progressDeletedCount,
-      };
-    });
+        }),
+      ]);
+      progressDeletedCount = deleted.count;
+    } else if (shuffledCount > 1) {
+      await prisma.$executeRaw`
+        WITH shuffled AS (
+          SELECT id, row_number() OVER (ORDER BY random()) - 1 AS new_position
+          FROM "Card"
+          WHERE "deckId" = ${deckId}
+        )
+        UPDATE "Card" AS c
+        SET "position" = shuffled.new_position
+        FROM shuffled
+        WHERE c.id = shuffled.id
+      `;
+    } else if (resetProgressForAllUsers) {
+      const deleted = await prisma.userProgress.deleteMany({
+        where: {
+          card: { deckId },
+        },
+      });
+      progressDeletedCount = deleted.count;
+    }
 
     return NextResponse.json({
       success: true,
-      shuffledCount: result.shuffledCount,
-      progressDeletedCount: result.progressDeletedCount,
+      shuffledCount,
+      progressDeletedCount,
       resetProgressForAllUsers,
     });
   } catch (error) {

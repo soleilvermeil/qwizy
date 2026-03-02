@@ -182,6 +182,7 @@ export async function GET(
       include: {
         values: true,
       },
+      orderBy: { position: "asc" },
     });
 
     // Get user's progress for this deck
