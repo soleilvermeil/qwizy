@@ -18,7 +18,9 @@ export default async function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <Link href="/">
-              <h1 className="text-2xl font-bold text-primary">Qwizy!</h1>
+              <h1 className="font-logo text-2xl font-normal tracking-wide text-primary">
+                Qwizy!
+              </h1>
             </Link>
           </div>
 

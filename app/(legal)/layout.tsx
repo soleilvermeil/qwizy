@@ -14,7 +14,7 @@ export default function LegalLayout({
             href="/"
             className="text-primary hover:text-primary-hover transition-colors font-medium"
           >
-            &larr; Back to Qwizy!
+            &larr; Back to <span className="font-logo">Qwizy!</span>
           </Link>
         </div>
         <article className="prose-legal space-y-8">{children}</article>

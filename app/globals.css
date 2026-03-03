@@ -46,6 +46,7 @@
   --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-logo: var(--font-limelight);
 }
 
 * {
@@ -151,4 +152,8 @@ body {
 
 .animate-slide-down {
   animation: slideDown 0.3s ease-out;
+}
+
+.font-logo {
+  font-family: var(--font-limelight, "Limelight"), serif;
 }

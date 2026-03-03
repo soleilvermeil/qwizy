@@ -32,7 +32,7 @@ export default async function Home() {
                 />
               </svg>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+            <h1 className="font-logo text-3xl sm:text-4xl font-normal tracking-wide text-foreground mb-4">
               Qwizy!
             </h1>
             <p className="text-lg text-muted">

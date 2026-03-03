@@ -22,12 +22,12 @@ export default function PrivacyPolicyPage() {
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-foreground">Introduction</h2>
         <p className="text-muted-foreground leading-relaxed">
-          This privacy policy explains how Qwizy! (&quot;the
-          Service&quot;, &quot;we&quot;, &quot;us&quot;) collects, uses, and
-          protects your personal data when you use our website. We are committed
-          to protecting your privacy and processing your data in compliance with
-          the General Data Protection Regulation (GDPR, Regulation (EU)
-          2016/679) and applicable national legislation.
+          This privacy policy explains how <span className="font-logo">Qwizy!</span>{" "}
+          (&quot;the Service&quot;, &quot;we&quot;, &quot;us&quot;) collects,
+          uses, and protects your personal data when you use our website. We are
+          committed to protecting your privacy and processing your data in
+          compliance with the General Data Protection Regulation (GDPR,
+          Regulation (EU) 2016/679) and applicable national legislation.
         </p>
       </section>
 
