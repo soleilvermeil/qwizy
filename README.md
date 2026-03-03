@@ -126,3 +126,7 @@ middleware.ts   # Auth and route protection middleware
 | `LEGAL_DB_HOST_ADDRESS` | Database hosting provider address | *(empty)* |
 | `LEGAL_DB_HOST_WEBSITE` | Database hosting provider website | *(empty)* |
 | `LEGAL_LAST_UPDATED` | Last updated date shown on legal pages | `February 2026` |
+
+# Disclaimers
+
+**AI-assisted development:** A significant portion of this codebase has been developed with the assistance of AI tools.
