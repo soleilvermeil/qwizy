@@ -156,4 +156,8 @@ body {
 
 .font-logo {
   font-family: var(--font-limelight, "Limelight"), serif;
+  -webkit-text-stroke: 0.25px currentColor;
+  text-shadow:
+    0.2px 0 currentColor,
+    -0.2px 0 currentColor;
 }
