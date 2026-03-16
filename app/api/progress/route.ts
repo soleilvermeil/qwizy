@@ -69,45 +69,73 @@ export async function POST(request: NextRequest) {
     // Calculate new values using FSRS
     const result = reviewCard(rating as AppRating, dbProgress);
 
-    // Update or create progress
-    const progress = await prisma.userProgress.upsert({
-      where: {
-        userId_cardId_showFieldId_askFieldId: {
+    const reviewedAt = new Date();
+    const dayBucket = new Date(reviewedAt);
+    dayBucket.setHours(0, 0, 0, 0);
+
+    // Persist FSRS progress and update deck/day aggregates in one transaction.
+    const [progress] = await prisma.$transaction([
+      prisma.userProgress.upsert({
+        where: {
+          userId_cardId_showFieldId_askFieldId: {
+            userId,
+            cardId,
+            showFieldId,
+            askFieldId,
+          },
+        },
+        update: {
+          stability: result.stability,
+          difficulty: result.difficulty,
+          state: result.state,
+          reps: result.reps,
+          lapses: result.lapses,
+          scheduledDays: result.scheduledDays,
+          elapsedDays: result.elapsedDays,
+          learningSteps: result.learningSteps,
+          dueDate: result.dueDate,
+          lastReviewed: reviewedAt,
+        },
+        create: {
           userId,
           cardId,
           showFieldId,
           askFieldId,
+          stability: result.stability,
+          difficulty: result.difficulty,
+          state: result.state,
+          reps: result.reps,
+          lapses: result.lapses,
+          scheduledDays: result.scheduledDays,
+          elapsedDays: result.elapsedDays,
+          learningSteps: result.learningSteps,
+          dueDate: result.dueDate,
+          lastReviewed: reviewedAt,
         },
-      },
-      update: {
-        stability: result.stability,
-        difficulty: result.difficulty,
-        state: result.state,
-        reps: result.reps,
-        lapses: result.lapses,
-        scheduledDays: result.scheduledDays,
-        elapsedDays: result.elapsedDays,
-        learningSteps: result.learningSteps,
-        dueDate: result.dueDate,
-        lastReviewed: new Date(),
-      },
-      create: {
-        userId,
-        cardId,
-        showFieldId,
-        askFieldId,
-        stability: result.stability,
-        difficulty: result.difficulty,
-        state: result.state,
-        reps: result.reps,
-        lapses: result.lapses,
-        scheduledDays: result.scheduledDays,
-        elapsedDays: result.elapsedDays,
-        learningSteps: result.learningSteps,
-        dueDate: result.dueDate,
-        lastReviewed: new Date(),
-      },
-    });
+      }),
+      prisma.userDeckDailyStat.upsert({
+        where: {
+          userId_deckId_day: {
+            userId,
+            deckId: card.deckId,
+            day: dayBucket,
+          },
+        },
+        update: {
+          reviewCount: { increment: 1 },
+          difficultySum: { increment: result.difficulty },
+          difficultyCount: { increment: 1 },
+        },
+        create: {
+          userId,
+          deckId: card.deckId,
+          day: dayBucket,
+          reviewCount: 1,
+          difficultySum: result.difficulty,
+          difficultyCount: 1,
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       progress: {

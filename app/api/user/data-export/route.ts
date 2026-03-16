@@ -70,6 +70,27 @@ export async function GET() {
       },
     });
 
+    // Fetch aggregated daily deck metrics
+    const dailyDeckStats = await prisma.userDeckDailyStat.findMany({
+      where: { userId },
+      orderBy: [{ day: "asc" }, { deckId: "asc" }],
+      select: {
+        id: true,
+        day: true,
+        reviewCount: true,
+        difficultySum: true,
+        difficultyCount: true,
+        createdAt: true,
+        updatedAt: true,
+        deck: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+
     // Build the export object
     const exportData = {
       exportDate: new Date().toISOString(),
@@ -98,6 +119,19 @@ export async function GET() {
         dueDate: p.dueDate.toISOString(),
         lastReviewed: p.lastReviewed?.toISOString() ?? null,
         createdAt: p.createdAt.toISOString(),
+      })),
+      dailyDeckStats: dailyDeckStats.map((s) => ({
+        id: s.id,
+        deckId: s.deck.id,
+        deck: s.deck.name,
+        day: s.day.toISOString().split("T")[0],
+        reviewCount: s.reviewCount,
+        difficultySum: s.difficultySum,
+        difficultyCount: s.difficultyCount,
+        averageDifficulty:
+          s.difficultyCount > 0 ? s.difficultySum / s.difficultyCount : null,
+        createdAt: s.createdAt.toISOString(),
+        updatedAt: s.updatedAt.toISOString(),
       })),
     };
 
